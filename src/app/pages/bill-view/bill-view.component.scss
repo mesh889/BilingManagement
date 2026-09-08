@@ -1,0 +1,358 @@
+$border: 1px solid #333;
+$font: 'Segoe UI', Arial, sans-serif;
+
+:host { display: block; }
+
+.a4-page {
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+  padding: 6mm 10mm 4mm;
+  background: #fff;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  font-family: $font;
+  font-size: 8.5px;
+  color: #222;
+  line-height: 1.25;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// ===== Letterhead Spacer =====
+.letterhead-spacer {
+  display: none;
+  flex-shrink: 0;
+}
+
+// ===== Letterhead =====
+.letterhead {
+  text-align: center;
+  border-bottom: 2px solid #333;
+  padding-bottom: 3px;
+  margin-bottom: 1px;
+  flex-shrink: 0;
+}
+.letterhead-name {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #1a1a1a;
+}
+.letterhead-details {
+  font-size: 8px;
+  color: #555;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+// ===== Invoice Title =====
+.invoice-title {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 0;
+  border-bottom: $border;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+// ===== Supplier Row (full width) =====
+.supplier-row {
+  border: $border;
+  border-top: none;
+  padding: 5px 10px;
+  flex-shrink: 0;
+
+  .buyer-label {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 1px;
+  }
+  .buyer-name {
+    font-size: 11px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 1px;
+  }
+  .buyer-info {
+    font-size: 8.5px;
+    line-height: 1.4;
+  }
+}
+
+// ===== Info Table (Buyer + Invoice No) =====
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: $border;
+  border-top: none;
+  flex-shrink: 0;
+
+  td { vertical-align: top; }
+  .info-left {
+    width: 60%;
+    border-right: $border;
+    padding: 6px 10px;
+  }
+  .info-right {
+    width: 40%;
+    padding: 6px 10px;
+  }
+  .buyer-label {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 2px;
+  }
+  .buyer-name {
+    font-size: 11px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .buyer-info {
+    font-size: 8.5px;
+    line-height: 1.4;
+  }
+}
+
+.detail-table {
+  width: 100%;
+  td {
+    padding: 3px 0;
+    font-size: 9px;
+  }
+  .label {
+    font-weight: 600;
+    width: 80px;
+    color: #555;
+  }
+  .value {
+    font-weight: 600;
+    color: #111;
+  }
+}
+
+// ===== Items Table =====
+$row-h: 16px;
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: -1px;
+  flex: 1 1 auto;
+
+  th, td {
+    border: $border;
+    padding: 1.5px 3px;
+    font-size: 7.5px;
+    height: $row-h;
+    vertical-align: middle;
+  }
+  thead th {
+    background: #f0f0f0;
+    font-weight: 700;
+    text-align: center;
+    font-size: 7px;
+    text-transform: uppercase;
+    padding: 2px 2px;
+  }
+  .col-sr { width: 18px; }
+  .col-desc { width: auto; }
+  .col-hsn { width: 40px; }
+  .col-unit { width: 30px; }
+  .col-qty { width: 30px; }
+  .col-rate { width: 45px; }
+  .col-disc { width: 28px; }
+  .col-cgst { width: 32px; }
+  .col-sgst { width: 32px; }
+  .col-amt { width: 55px; }
+
+  .total-row td {
+    background: #f5f5f5;
+    font-size: 8px;
+    padding: 2px 3px;
+    height: $row-h;
+  }
+}
+
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
+
+// ===== Amount in Words =====
+.words-section {
+  border: $border;
+  border-top: none;
+  padding: 2px 6px;
+  font-size: 7.5px;
+  flex-shrink: 0;
+}
+.words-value {
+  font-weight: 700;
+  font-size: 8px;
+  font-style: italic;
+}
+.small-words { font-size: 7.5px; }
+
+// ===== GST Table =====
+.gst-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: -1px;
+  flex-shrink: 0;
+
+  th, td {
+    border: $border;
+    padding: 1.5px 3px;
+    font-size: 7px;
+    height: $row-h;
+    vertical-align: middle;
+  }
+  thead th {
+    background: #f0f0f0;
+    font-weight: 700;
+    text-align: center;
+    font-size: 6.5px;
+  }
+  tfoot td { background: #f5f5f5; }
+}
+
+// ===== Bottom Section =====
+.bottom-section {
+  display: flex;
+  border: $border;
+  border-top: none;
+  flex-shrink: 0;
+}
+
+.bank-details {
+  width: 55%;
+  border-right: $border;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  .section-label {
+    font-weight: 700;
+    font-size: 7.5px;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+}
+
+.bank-table {
+  font-size: 8px;
+  td {
+    padding: 1.5px 0;
+    line-height: 1.3;
+  }
+  .label {
+    font-weight: 600;
+    width: 70px;
+    white-space: nowrap;
+  }
+}
+
+.totals-signature {
+  width: 45%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.totals-table {
+  width: 100%;
+  font-size: 8px;
+  border-collapse: collapse;
+
+  td {
+    padding: 2px 8px;
+    border-bottom: 1px solid #ddd;
+  }
+  .grand-total-row td {
+    font-size: 9px;
+    background: #f0f0f0;
+    border-bottom: none;
+    padding: 3px 8px;
+  }
+}
+
+.signature-block {
+  text-align: right;
+  padding: 2px 8px 4px;
+  font-size: 7.5px;
+
+  .sig-company {
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .sig-line {
+    border-bottom: 1px solid #333;
+    width: 100px;
+    margin-left: auto;
+    margin-bottom: 2px;
+  }
+  .sig-label { font-size: 7px; color: #555; }
+}
+
+// ===== Declaration =====
+.declaration {
+  border: $border;
+  border-top: none;
+  padding: 2px 6px;
+  font-size: 6.5px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+// ===== Footer =====
+.invoice-footer {
+  text-align: center;
+  font-size: 6.5px;
+  color: #999;
+  margin-top: 2px;
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+// ===== PRINT =====
+@media print {
+  .no-print { display: none !important; }
+
+  .letterhead { display: none !important; }
+  .letterhead-spacer {
+    display: block !important;
+    height: 40mm;
+  }
+
+  .a4-page {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 2mm 8mm 3mm;
+    border: none;
+    box-shadow: none;
+  }
+
+  @page {
+    size: A4;
+    margin: 3mm;
+  }
+
+  .items-table,
+  .gst-table,
+  .bottom-section,
+  .words-section,
+  .declaration {
+    page-break-inside: avoid;
+  }
+}

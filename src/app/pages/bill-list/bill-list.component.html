@@ -1,0 +1,242 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1 fw-bold text-dark">
+      <i class="bi bi-receipt me-2"></i>All Bills
+    </h4>
+    <p class="text-muted mb-0 small">Manage and track all your bills</p>
+  </div>
+  <a routerLink="/bills/create" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Create New Bill
+  </a>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card bg-primary text-white">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="small text-white-50">Total Bills</div>
+            <div class="fs-4 fw-bold">{{ filteredBills.length }}</div>
+          </div>
+          <i class="bi bi-file-earmark-text fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-success text-white">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="small text-white-50">Total Value</div>
+            <div class="fs-4 fw-bold">&#8377; {{ totalValue | number }}</div>
+          </div>
+          <i class="bi bi-currency-rupee fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-header bg-white py-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-semibold">
+        <i class="bi bi-funnel me-2"></i>Filters
+      </h6>
+      <button class="btn btn-sm btn-outline-secondary" (click)="clearFilters()">
+        <i class="bi bi-x-circle me-1"></i> Clear All
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Buyer Name</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" class="form-control" placeholder="Search buyer..." [(ngModel)]="buyerFilter" (ngModelChange)="onFilterChange()">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Supplier Name</label>
+        <div class="position-relative supplier-wrap"
+             (mouseenter)="openSupplierDropdown()" (mouseleave)="closeSupplierDropdown()">
+          <div class="form-control d-flex justify-content-between align-items-center" style="cursor:pointer;">
+            <span class="text-truncate" [class.text-muted]="selectedSuppliers.size === 0">
+              {{ supplierSelectionLabel }}
+            </span>
+            <i class="bi bi-chevron-down ms-2"></i>
+          </div>
+          @if (showSupplierDropdown) {
+            <div class="supplier-dropdown">
+              <div class="d-flex justify-content-between px-3 py-2 border-bottom bg-light">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none" (mousedown)="selectAllSuppliers()">Select All</button>
+                <button class="btn btn-link btn-sm p-0 text-decoration-none text-danger" (mousedown)="clearSupplierSelection()">Clear</button>
+              </div>
+              <div class="supplier-list">
+                @for (s of allSuppliers; track s.name) {
+                  <label class="supplier-option" (mousedown)="$event.preventDefault()">
+                    <input type="checkbox" class="form-check-input m-0"
+                           [checked]="selectedSuppliers.has(s.name)"
+                           (change)="toggleSupplier(s.name)">
+                    <span>{{ s.name }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Date From</label>
+        <input type="date" class="form-control" [(ngModel)]="dateFrom" (ngModelChange)="onFilterChange()">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Date To</label>
+        <input type="date" class="form-control" [(ngModel)]="dateTo" (ngModelChange)="onFilterChange()">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Action Bar -->
+@if (selectedBillIds.size > 0) {
+  <div class="card mb-3 border-warning">
+    <div class="card-body py-2 d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+      <div class="d-flex align-items-center gap-3">
+        <span class="fw-semibold">
+          <i class="bi bi-check2-square me-1"></i> {{ selectedBillIds.size }} bill{{ selectedBillIds.size > 1 ? 's' : '' }} selected
+        </span>
+        <button class="btn btn-sm btn-outline-primary" (click)="selectAllFiltered()">
+          Select All ({{ filteredBills.length }})
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="clearSelection()">
+          Clear Selection
+        </button>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-success" (click)="exportExcel()">
+          <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Excel
+        </button>
+        <button class="btn btn-sm btn-danger" (click)="exportPdf()">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Bills Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:40px;">
+              <input type="checkbox" class="form-check-input" [checked]="isAllPageSelected" (change)="toggleSelectAllPage()">
+            </th>
+            <th>#</th>
+            <th>Bill Number</th>
+            <th>Date</th>
+            <th>Buyer</th>
+            <th>Supplier</th>
+            <th>Items</th>
+            <th class="text-end">Grand Total (&#8377;)</th>
+            <th class="text-center pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (bill of paginatedBills; track bill.id; let i = $index) {
+            <tr [class.table-active]="selectedBillIds.has(bill.id!)">
+              <td class="ps-3">
+                <input type="checkbox" class="form-check-input"
+                       [checked]="selectedBillIds.has(bill.id!)"
+                       (change)="toggleBillSelection(bill.id)">
+              </td>
+              <td class="text-muted">{{ startRecord + i }}</td>
+              <td>
+                <span class="fw-semibold text-primary">{{ bill.billNumber }}</span>
+              </td>
+              <td>{{ bill.billDate }}</td>
+              <td>
+                <i class="bi bi-person-fill text-muted me-1"></i>{{ bill.buyer.name }}
+              </td>
+              <td>
+                <i class="bi bi-building text-muted me-1"></i>{{ bill.supplier.name }}
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border">{{ bill.items.length }} items</span>
+              </td>
+              <td class="text-end fw-semibold">&#8377; {{ bill.grandTotal | number }}</td>
+              <td class="text-center pe-4">
+                <a [routerLink]="['/bills/print', bill.id]" class="btn btn-sm btn-outline-dark me-1" title="Print / PDF">
+                  <i class="bi bi-printer"></i>
+                </a>
+                <a [routerLink]="['/bills/edit', bill.id]" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-danger" title="Delete" (click)="deleteBill(bill.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          }
+          @if (filteredBills.length === 0) {
+            <tr>
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                No bills found matching your filters.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination Footer -->
+  @if (filteredBills.length > 0) {
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-muted small">
+          Showing {{ startRecord }} - {{ endRecord }} of {{ filteredBills.length }} bills
+        </span>
+        <div class="d-flex align-items-center gap-2">
+          <label class="small text-muted mb-0">Per page:</label>
+          <select class="form-select form-select-sm" style="width: 70px;" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+            @for (opt of pageSizeOptions; track opt) {
+              <option [value]="opt">{{ opt }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" (click)="goToPage(1)"><i class="bi bi-chevron-double-left"></i></a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" (click)="goToPage(currentPage - 1)"><i class="bi bi-chevron-left"></i></a>
+          </li>
+          @for (p of pages; track p) {
+            <li class="page-item" [class.active]="p === currentPage">
+              <a class="page-link" (click)="goToPage(p)">{{ p }}</a>
+            </li>
+          }
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" (click)="goToPage(currentPage + 1)"><i class="bi bi-chevron-right"></i></a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" (click)="goToPage(totalPages)"><i class="bi bi-chevron-double-right"></i></a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  }
+</div>

@@ -1,0 +1,226 @@
+<!-- Action Buttons (hidden on print) -->
+<div class="no-print d-flex justify-content-between align-items-center mb-3 px-2">
+  <a routerLink="/bills" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Bills
+  </a>
+  <div>
+    <a [routerLink]="['/bills/edit', bill.id]" class="btn btn-outline-primary me-2">
+      <i class="bi bi-pencil-square me-1"></i> Edit
+    </a>
+    <button class="btn btn-dark" (click)="printBill()">
+      <i class="bi bi-printer me-1"></i> Print / Save PDF
+    </button>
+  </div>
+</div>
+
+<!-- ========== A4 INVOICE PAGE ========== -->
+<div class="a4-page">
+
+  <!-- Blank space for pre-printed letterhead (only visible during print) -->
+  <div class="letterhead-spacer"></div>
+
+  <!-- Supplier Letterhead (visible on screen, hidden during print) -->
+  <div class="letterhead">
+    <div class="letterhead-name">{{ bill.supplier.name }}</div>
+    <div class="letterhead-details">
+      {{ bill.supplier.address }} &nbsp;|&nbsp; Phone: {{ bill.supplier.phone }} &nbsp;|&nbsp; GSTIN: {{ bill.supplier.gstNo }} &nbsp;|&nbsp; PAN: {{ bill.supplier.pan }}
+    </div>
+  </div>
+
+  <!-- Tax Invoice Title -->
+  <div class="invoice-title">Tax Invoice</div>
+
+  <!-- Supplier Details (full width row) -->
+  <div class="supplier-row">
+    <div class="buyer-label">Supplier</div>
+    <span class="buyer-name">{{ bill.supplier.name }}</span>
+    <div class="buyer-info">
+      {{ bill.supplier.address }} &nbsp;&nbsp;|&nbsp;&nbsp; GSTIN: {{ bill.supplier.gstNo }} &nbsp;&nbsp;|&nbsp;&nbsp; PAN: {{ bill.supplier.pan }} &nbsp;&nbsp;|&nbsp;&nbsp; Phone: {{ bill.supplier.phone }}
+    </div>
+  </div>
+
+  <!-- Buyer Details (left) + Invoice Info (right) -->
+  <table class="info-table">
+    <tr>
+      <td class="info-left">
+        <div class="buyer-label">Bill To (Buyer)</div>
+        <span class="buyer-name">{{ bill.buyer.name }}</span>
+        <div class="buyer-info">
+          {{ bill.buyer.address }}<br>
+          GSTIN: {{ bill.buyer.gstNo }} &nbsp;&nbsp;|&nbsp;&nbsp; PAN: {{ bill.buyer.pan }} &nbsp;&nbsp;|&nbsp;&nbsp; Phone: {{ bill.buyer.phone }}
+        </div>
+      </td>
+      <td class="info-right">
+        <table class="detail-table">
+          <tr>
+            <td class="label">Invoice No:</td>
+            <td class="value">{{ bill.billNumber }}</td>
+          </tr>
+          <tr>
+            <td class="label">Date:</td>
+            <td class="value">{{ bill.billDate }}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Items Table -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th class="col-sr">Sr</th>
+        <th class="col-desc">Description of Goods / Services</th>
+        <th class="col-hsn">HSN/SAC</th>
+        <th class="col-unit">Unit</th>
+        <th class="col-qty">Qty</th>
+        <th class="col-rate">Rate (₹)</th>
+        <th class="col-disc">Disc%</th>
+        <th class="col-cgst">CGST%</th>
+        <th class="col-sgst">SGST%</th>
+        <th class="col-amt">Amount (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of filledItems; track item.srNo; let i = $index) {
+        <tr>
+          <td class="text-center">{{ i + 1 }}</td>
+          <td>{{ item.description }}</td>
+          <td class="text-center">{{ item.hsnSac }}</td>
+          <td class="text-center">{{ item.unit }}</td>
+          <td class="text-right">{{ item.quantity }}</td>
+          <td class="text-right">{{ item.rate | number:'1.2-2' }}</td>
+          <td class="text-center">{{ item.discount || 0 }}</td>
+          <td class="text-center">{{ item.cgstPercent || 0 }}</td>
+          <td class="text-center">{{ item.sgstPercent || 0 }}</td>
+          <td class="text-right">{{ item.amount | number:'1.2-2' }}</td>
+        </tr>
+      }
+      @for (e of emptyRows; track $index) {
+        <tr class="empty-row">
+          <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="4" class="text-right"><strong>Total</strong></td>
+        <td class="text-center"><strong>{{ totalUnits }}</strong></td>
+        <td colspan="4"></td>
+        <td class="text-right"><strong>{{ totalItemsAmount | number:'1.2-2' }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Amount in Words -->
+  <div class="words-section">
+    <strong>Amount Chargeable (in words):</strong>
+    <span class="words-value">{{ grandTotalInWords }}</span>
+  </div>
+
+  <!-- GST Summary Table -->
+  <table class="gst-table">
+    <thead>
+      <tr>
+        <th rowspan="2" class="align-middle">HSN/SAC</th>
+        <th rowspan="2" class="align-middle">Taxable Value</th>
+        <th colspan="2">Central Tax (CGST)</th>
+        <th colspan="2">State Tax (SGST)</th>
+        <th rowspan="2" class="align-middle">Total Tax Amount</th>
+      </tr>
+      <tr>
+        <th>Rate</th>
+        <th>Amount</th>
+        <th>Rate</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of gstSummary; track row.hsnSac) {
+        <tr>
+          <td class="text-center">{{ row.hsnSac }}</td>
+          <td class="text-right">{{ row.taxableValue | number:'1.2-2' }}</td>
+          <td class="text-center">{{ row.cgstRate }}%</td>
+          <td class="text-right">{{ row.cgstAmount | number:'1.2-2' }}</td>
+          <td class="text-center">{{ row.sgstRate }}%</td>
+          <td class="text-right">{{ row.sgstAmount | number:'1.2-2' }}</td>
+          <td class="text-right"><strong>{{ row.totalTax | number:'1.2-2' }}</strong></td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td class="text-right"><strong>Total</strong></td>
+        <td class="text-right"><strong>{{ totalTaxableAmount | number:'1.2-2' }}</strong></td>
+        <td></td>
+        <td class="text-right"><strong>{{ (totalGst / 2) | number:'1.2-2' }}</strong></td>
+        <td></td>
+        <td class="text-right"><strong>{{ (totalGst / 2) | number:'1.2-2' }}</strong></td>
+        <td class="text-right"><strong>{{ totalGst | number:'1.2-2' }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Tax in Words -->
+  <div class="words-section small-words">
+    <strong>Tax Amount (in words):</strong> {{ gstInWords }}
+  </div>
+
+  <!-- Bottom Section: Bank Details + Totals + Signature -->
+  <div class="bottom-section">
+    <div class="bank-details">
+      <div class="section-label">Company's Bank Details</div>
+      <table class="bank-table">
+        <tr>
+          <td class="label">Bank Name:</td>
+          <td>{{ bill.bankDetails.bankName }}</td>
+        </tr>
+        <tr>
+          <td class="label">A/c No:</td>
+          <td>{{ bill.bankDetails.accountNumber }}</td>
+        </tr>
+        <tr>
+          <td class="label">IFSC Code:</td>
+          <td>{{ bill.bankDetails.ifscCode }}</td>
+        </tr>
+      </table>
+    </div>
+    <div class="totals-signature">
+      <table class="totals-table">
+        <tr>
+          <td>Taxable Amount</td>
+          <td class="text-right">₹ {{ totalTaxableAmount | number:'1.2-2' }}</td>
+        </tr>
+        <tr>
+          <td>CGST</td>
+          <td class="text-right">₹ {{ (totalGst / 2) | number:'1.2-2' }}</td>
+        </tr>
+        <tr>
+          <td>SGST</td>
+          <td class="text-right">₹ {{ (totalGst / 2) | number:'1.2-2' }}</td>
+        </tr>
+        <tr class="grand-total-row">
+          <td><strong>Grand Total</strong></td>
+          <td class="text-right"><strong>₹ {{ grandTotal | number:'1.2-2' }}</strong></td>
+        </tr>
+      </table>
+      <div class="signature-block">
+        <div class="sig-company">For {{ bill.supplier.name }}</div>
+        <div class="sig-line"></div>
+        <div class="sig-label">Authorised Signatory</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Declaration -->
+  <div class="declaration">
+    <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods/services
+    described and that all particulars are true and correct.
+  </div>
+
+  <!-- Footer -->
+  <div class="invoice-footer">
+    This is a computer generated invoice.
+  </div>
+
+</div>

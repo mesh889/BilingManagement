@@ -1,0 +1,40 @@
+.upload-area {
+  display: block;
+  border: 2px dashed #ffc107;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #fff8e1;
+  }
+}
+
+.bill-select-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.bill-select-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: #f8f9fa;
+  }
+
+  &.selected {
+    background: #e8f5e9;
+  }
+}

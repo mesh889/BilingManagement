@@ -1,0 +1,47 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-cart-plus me-2"></i>{{ isEdit ? 'Edit' : 'Add' }} Purchase</h4>
+  <a routerLink="/purchases" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Invoice No <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="form.invoiceNo" placeholder="PUR-001">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Invoice Date <span class="text-danger">*</span></label>
+        <input type="date" class="form-control" [(ngModel)]="form.invoiceDate">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="form.name" placeholder="Supplier / Vendor name">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">GST No</label>
+        <input type="text" class="form-control" [(ngModel)]="form.gstNo" placeholder="22ABCDE1234F1Z5" maxlength="15" style="text-transform:uppercase;">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Taxable Amount (&#8377;)</label>
+        <input type="number" class="form-control" [(ngModel)]="form.taxableAmount" min="0">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">CGST (&#8377;)</label>
+        <input type="number" class="form-control" [(ngModel)]="form.cgst" min="0">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">SGST (&#8377;)</label>
+        <input type="number" class="form-control" [(ngModel)]="form.sgst" min="0">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Total with Tax (&#8377;)</label>
+        <input type="text" class="form-control bg-light fw-bold" [value]="totalWithTax | number:'1.2-2'" readonly>
+      </div>
+    </div>
+    <div class="mt-4 d-flex justify-content-end gap-2">
+      <a routerLink="/purchases" class="btn btn-outline-secondary">Cancel</a>
+      <button class="btn btn-success px-4" (click)="save()"><i class="bi bi-check-lg me-1"></i> {{ isEdit ? 'Update' : 'Save' }}</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,201 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1 fw-bold"><i class="bi bi-bar-chart-line me-2"></i>Sales & Purchase Report</h4>
+    <p class="text-muted mb-0 small">Monthly / Yearly view of sales, purchases, GST summary</p>
+  </div>
+  <div class="d-flex gap-2 no-print">
+    <button class="btn btn-success" (click)="downloadExcel()">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
+    </button>
+    <button class="btn btn-danger" (click)="printReport()">
+      <i class="bi bi-file-earmark-pdf me-1"></i> PDF / Print
+    </button>
+  </div>
+</div>
+
+<!-- Print Header (only visible during print) -->
+<div class="print-only print-header">
+  <h3 class="text-center fw-bold mb-1">Sales & Purchase Report</h3>
+  <p class="text-center text-muted mb-3">{{ filterLabel }} &mdash; {{ activeTab === 'summary' ? 'Monthly Summary' : activeTab === 'sales' ? 'Sales Details' : 'Purchase Details' }}</p>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Year</label>
+        <select class="form-select" [(ngModel)]="selectedYear" (ngModelChange)="onFilterChange()">
+          <option value="">All Years</option>
+          @for (y of availableYears; track y) { <option [value]="y">{{ y }}</option> }
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Month</label>
+        <select class="form-select" [(ngModel)]="selectedMonth" (ngModelChange)="onFilterChange()">
+          @for (m of months; track m.value) { <option [value]="m.value">{{ m.label }}</option> }
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item">
+    <a class="nav-link" [class.active]="activeTab === 'summary'" (click)="activeTab = 'summary'" style="cursor:pointer;">
+      <i class="bi bi-graph-up me-1"></i> Monthly Summary
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" [class.active]="activeTab === 'sales'" (click)="activeTab = 'sales'" style="cursor:pointer;">
+      <i class="bi bi-receipt me-1"></i> Sales ({{ sales.length }})
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" [class.active]="activeTab === 'purchases'" (click)="activeTab = 'purchases'" style="cursor:pointer;">
+      <i class="bi bi-cart me-1"></i> Purchases ({{ purchases.length }})
+    </a>
+  </li>
+</ul>
+
+<!-- ===== MONTHLY SUMMARY TAB ===== -->
+@if (activeTab === 'summary') {
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle mb-0">
+          <thead class="table-dark">
+            <tr class="text-center">
+              <th rowspan="2" class="align-middle">Month</th>
+              <th colspan="5" class="bg-success text-white">Sales</th>
+              <th colspan="5" class="bg-warning text-dark">Purchases</th>
+            </tr>
+            <tr class="text-center small">
+              <th>Count</th><th>CGST</th><th>SGST</th><th>With Tax</th><th>Without Tax</th>
+              <th>Count</th><th>CGST</th><th>SGST</th><th>With Tax</th><th>Without Tax</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of monthlySummary; track m.month) {
+              <tr>
+                <td class="fw-semibold">{{ monthName(m.month) }}</td>
+                <td class="text-center">{{ m.sales.count }}</td>
+                <td class="text-end">&#8377; {{ m.sales.cgst | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ m.sales.sgst | number:'1.2-2' }}</td>
+                <td class="text-end fw-semibold text-success">&#8377; {{ m.sales.totalWithTax | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ m.sales.totalWithoutTax | number:'1.2-2' }}</td>
+                <td class="text-center">{{ m.purchases.count }}</td>
+                <td class="text-end">&#8377; {{ m.purchases.cgst | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ m.purchases.sgst | number:'1.2-2' }}</td>
+                <td class="text-end fw-semibold text-danger">&#8377; {{ m.purchases.totalWithTax | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ m.purchases.totalWithoutTax | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          @if (monthlySummary.length === 0) {
+            <tbody><tr><td colspan="11" class="text-center py-4 text-muted">No data for selected period.</td></tr></tbody>
+          }
+        </table>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ===== SALES TAB ===== -->
+@if (activeTab === 'sales') {
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">#</th>
+              <th>Invoice No</th>
+              <th>Date</th>
+              <th>Name</th>
+              <th>GST No</th>
+              <th class="text-end">CGST</th>
+              <th class="text-end">SGST</th>
+              <th class="text-end">With Tax</th>
+              <th class="text-end">Without Tax</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of sales; track s.invoiceNo; let i = $index) {
+              <tr>
+                <td class="ps-3 text-muted">{{ i + 1 }}</td>
+                <td class="fw-semibold text-primary">{{ s.invoiceNo }}</td>
+                <td>{{ s.invoiceDate }}</td>
+                <td>{{ s.name }}</td>
+                <td class="small">{{ s.gstNo }}</td>
+                <td class="text-end">&#8377; {{ s.cgst | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ s.sgst | number:'1.2-2' }}</td>
+                <td class="text-end fw-semibold">&#8377; {{ s.totalWithTax | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ s.totalWithoutTax | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot class="table-success">
+            <tr class="fw-bold">
+              <td colspan="5" class="text-end ps-3">Total Sales</td>
+              <td class="text-end">&#8377; {{ salesTotals.cgst | number:'1.2-2' }}</td>
+              <td class="text-end">&#8377; {{ salesTotals.sgst | number:'1.2-2' }}</td>
+              <td class="text-end">&#8377; {{ salesTotals.withTax | number:'1.2-2' }}</td>
+              <td class="text-end">&#8377; {{ salesTotals.withoutTax | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ===== PURCHASES TAB ===== -->
+@if (activeTab === 'purchases') {
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">#</th>
+              <th>Invoice No</th>
+              <th>Date</th>
+              <th>Name</th>
+              <th>GST No</th>
+              <th class="text-end">CGST</th>
+              <th class="text-end">SGST</th>
+              <th class="text-end">With Tax</th>
+              <th class="text-end">Without Tax</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of purchases; track p.invoiceNo; let i = $index) {
+              <tr>
+                <td class="ps-3 text-muted">{{ i + 1 }}</td>
+                <td class="fw-semibold text-primary">{{ p.invoiceNo }}</td>
+                <td>{{ p.invoiceDate }}</td>
+                <td>{{ p.name }}</td>
+                <td class="small">{{ p.gstNo }}</td>
+                <td class="text-end">&#8377; {{ p.cgst | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ p.sgst | number:'1.2-2' }}</td>
+                <td class="text-end fw-semibold">&#8377; {{ p.totalWithTax | number:'1.2-2' }}</td>
+                <td class="text-end">&#8377; {{ p.totalWithoutTax | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot class="table-warning">
+            <tr class="fw-bold">
+              <td colspan="5" class="text-end ps-3">Total Purchases</td>
+              <td class="text-end">&#8377; {{ purchasesTotals.cgst | number:'1.2-2' }}</td>
+              <td class="text-end">&#8377; {{ purchasesTotals.sgst | number:'1.2-2' }}</td>
+              <td class="text-end">&#8377; {{ purchasesTotals.withTax | number:'1.2-2' }}</td>
+              <td class="text-end">&#8377; {{ purchasesTotals.withoutTax | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+}

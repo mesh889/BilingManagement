@@ -1,0 +1,360 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-1 fw-bold text-dark">
+      <i class="bi" [class.bi-file-earmark-plus]="!isEditMode" [class.bi-pencil-square]="isEditMode"></i>
+      {{ isEditMode ? 'Edit Bill' : 'Create New Bill' }}
+    </h4>
+    <p class="text-muted mb-0 small">
+      {{ isEditMode ? 'Editing bill: ' + billNumber : 'Fill in the details below to generate a new bill' }}
+    </p>
+  </div>
+  <a routerLink="/bills" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Bills
+  </a>
+</div>
+
+<!-- ========== BILL INFO ========== -->
+<div class="card mb-4">
+  <div class="card-header bg-dark text-white py-2">
+    <i class="bi bi-info-circle me-2"></i>Bill Information
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Bill Number</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-hash"></i></span>
+          <input type="text" class="form-control" [(ngModel)]="billNumber">
+        </div>
+        <div class="form-text">Auto-generated (editable)</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Bill Date</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+          <input type="date" class="form-control" [(ngModel)]="billDate">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== BUYER & SUPPLIER ========== -->
+<div class="row g-4 mb-4">
+  <!-- Buyer -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white py-2">
+        <i class="bi bi-person-fill me-2"></i>Buyer Details
+      </div>
+      <div class="card-body">
+        <div class="mb-3 position-relative">
+          <label class="form-label small fw-semibold">Name (as in GST) <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" placeholder="Start typing buyer name..."
+                 [(ngModel)]="buyer.name" (ngModelChange)="onBuyerNameInput()" (blur)="hideBuyerSuggestions()">
+          @if (showBuyerSuggestions && buyerSuggestions.length > 0) {
+            <div class="autocomplete-dropdown">
+              @for (b of buyerSuggestions; track b.name) {
+                <div class="autocomplete-item" (mousedown)="selectBuyer(b)">
+                  <div class="fw-semibold">{{ b.name }}</div>
+                  <small class="text-muted">GST: {{ b.gstNo }} &bull; PAN: {{ b.pan }} &bull; Ph: {{ b.phone }}</small>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">GST Number</label>
+          <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15"
+                 [(ngModel)]="buyer.gstNo" style="text-transform: uppercase;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">PAN Number</label>
+          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10"
+                 [(ngModel)]="buyer.pan" style="text-transform: uppercase;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Address</label>
+          <textarea class="form-control" rows="2" placeholder="Full address" [(ngModel)]="buyer.address"></textarea>
+        </div>
+        <div>
+          <label class="form-label small fw-semibold">Phone Number</label>
+          <div class="input-group">
+            <span class="input-group-text">+91</span>
+            <input type="text" class="form-control" placeholder="9876543210" maxlength="10" [(ngModel)]="buyer.phone">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplier -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-success text-white py-2">
+        <i class="bi bi-building me-2"></i>Supplier Details
+      </div>
+      <div class="card-body">
+        <div class="mb-3 position-relative">
+          <label class="form-label small fw-semibold">Name (as in GST) <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" placeholder="Start typing supplier name..."
+                 [(ngModel)]="supplier.name" (ngModelChange)="onSupplierNameInput()" (blur)="hideSupplierSuggestions()">
+          @if (showSupplierSuggestions && supplierSuggestions.length > 0) {
+            <div class="autocomplete-dropdown">
+              @for (s of supplierSuggestions; track s.name) {
+                <div class="autocomplete-item" (mousedown)="selectSupplier(s)">
+                  <div class="fw-semibold">{{ s.name }}</div>
+                  <small class="text-muted">GST: {{ s.gstNo }} &bull; PAN: {{ s.pan }} &bull; Ph: {{ s.phone }}</small>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">GST Number</label>
+          <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15"
+                 [(ngModel)]="supplier.gstNo" style="text-transform: uppercase;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">PAN Number</label>
+          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10"
+                 [(ngModel)]="supplier.pan" style="text-transform: uppercase;">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Address</label>
+          <textarea class="form-control" rows="2" placeholder="Full address" [(ngModel)]="supplier.address"></textarea>
+        </div>
+        <div>
+          <label class="form-label small fw-semibold">Phone Number</label>
+          <div class="input-group">
+            <span class="input-group-text">+91</span>
+            <input type="text" class="form-control" placeholder="9876543210" maxlength="10" [(ngModel)]="supplier.phone">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ITEMS TABLE ========== -->
+<div class="card mb-4">
+  <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-table me-2"></i>Bill Items</span>
+    <span class="badge bg-light text-dark">{{ filledItems.length }} of {{ items.length }} rows filled</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm mb-0 items-table">
+        <thead class="table-light">
+          <tr class="text-center">
+            <th style="width:50px">Sr No</th>
+            <th style="min-width:200px">Description</th>
+            <th style="width:110px">HSN/SAC</th>
+            <th style="width:80px">Unit</th>
+            <th style="width:80px">Qty</th>
+            <th style="width:100px">Rate (&#8377;)</th>
+            <th style="width:80px">Disc %</th>
+            <th style="width:80px">CGST %</th>
+            <th style="width:80px">SGST %</th>
+            <th style="width:120px">Amount (&#8377;)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items; track item.srNo) {
+            <tr [class.table-success]="item.description && item.quantity && item.rate">
+              <td class="text-center text-muted fw-semibold">{{ item.srNo }}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm border-0 bg-transparent"
+                       placeholder="Enter description" [(ngModel)]="item.description">
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center"
+                       placeholder="HSN/SAC" [(ngModel)]="item.hsnSac">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                       placeholder="0" [(ngModel)]="item.unit" min="0">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                       placeholder="0" [(ngModel)]="item.quantity" (ngModelChange)="calcAmount(item)" min="0">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-end"
+                       placeholder="0.00" [(ngModel)]="item.rate" (ngModelChange)="calcAmount(item)" min="0">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                       placeholder="0" [(ngModel)]="item.discount" (ngModelChange)="calcAmount(item)" min="0" max="100">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                       placeholder="0" [(ngModel)]="item.cgstPercent" (ngModelChange)="calcAmount(item)" min="0">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                       placeholder="0" [(ngModel)]="item.sgstPercent" (ngModelChange)="calcAmount(item)" min="0">
+              </td>
+              <td class="text-end fw-semibold pe-3"
+                  [class.text-success]="item.amount > 0">
+                {{ item.amount | number:'1.2-2' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot class="table-dark">
+          <tr>
+            <td colspan="3" class="text-end fw-bold pe-3">Total:</td>
+            <td class="text-center fw-bold">{{ totalUnits }}</td>
+            <td colspan="5"></td>
+            <td class="text-end fw-bold pe-3">&#8377; {{ totalItemsAmount | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== AMOUNT IN WORDS ========== -->
+@if (filledItems.length > 0) {
+  <div class="card mb-4 border-start border-4 border-primary">
+    <div class="card-body py-3">
+      <div class="row">
+        <div class="col-12 mb-2">
+          <span class="small fw-semibold text-muted">GST Chargeable (in words):</span>
+          <div class="fw-semibold text-dark">{{ gstInWords }}</div>
+        </div>
+        <div class="col-12">
+          <span class="small fw-semibold text-muted">Total Amount (in words):</span>
+          <div class="fw-bold text-primary fs-6">{{ grandTotalInWords }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========== GST SUMMARY TABLE ========== -->
+@if (gstSummary.length > 0) {
+  <div class="card mb-4">
+    <div class="card-header bg-warning bg-opacity-75 text-dark py-2">
+      <i class="bi bi-calculator me-2"></i>GST Summary (Tax Breakup by HSN/SAC)
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm mb-0">
+          <thead class="table-light">
+            <tr class="text-center">
+              <th rowspan="2" class="align-middle">HSN/SAC</th>
+              <th rowspan="2" class="align-middle">Taxable Value (&#8377;)</th>
+              <th colspan="2" class="bg-info bg-opacity-10">CGST</th>
+              <th colspan="2" class="bg-info bg-opacity-10">SGST</th>
+              <th rowspan="2" class="align-middle">Total Tax (&#8377;)</th>
+            </tr>
+            <tr class="text-center">
+              <th>Rate %</th>
+              <th>Amount (&#8377;)</th>
+              <th>Rate %</th>
+              <th>Amount (&#8377;)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of gstSummary; track row.hsnSac) {
+              <tr class="text-center">
+                <td class="fw-semibold">{{ row.hsnSac }}</td>
+                <td class="text-end">{{ row.taxableValue | number:'1.2-2' }}</td>
+                <td>{{ row.cgstRate }}%</td>
+                <td class="text-end">{{ row.cgstAmount | number:'1.2-2' }}</td>
+                <td>{{ row.sgstRate }}%</td>
+                <td class="text-end">{{ row.sgstAmount | number:'1.2-2' }}</td>
+                <td class="text-end fw-bold">{{ row.totalTax | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot class="table-secondary">
+            <tr class="text-center fw-bold">
+              <td colspan="2" class="text-end">Total</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td class="text-end">{{ totalGst | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========== BANK DETAILS & PAYMENT SUMMARY (side by side) ========== -->
+<div class="row g-4 mb-4">
+  <!-- Bank Details -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-secondary text-white py-2">
+        <i class="bi bi-bank me-2"></i>Supplier Bank Details
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Bank Name</label>
+          <input type="text" class="form-control" placeholder="e.g. State Bank of India" [(ngModel)]="bankDetails.bankName">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Account Number</label>
+          <input type="text" class="form-control" placeholder="Enter account number" [(ngModel)]="bankDetails.accountNumber">
+        </div>
+        <div>
+          <label class="form-label small fw-semibold">IFSC Code</label>
+          <input type="text" class="form-control" placeholder="e.g. SBIN0001234" maxlength="11"
+                 [(ngModel)]="bankDetails.ifscCode" style="text-transform: uppercase;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Summary -->
+  <div class="col-md-6">
+    <div class="card h-100 border-primary border-2">
+      <div class="card-header bg-primary text-white py-2">
+        <i class="bi bi-cash-stack me-2"></i>Payment Summary
+      </div>
+      <div class="card-body d-flex flex-column justify-content-center">
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Taxable Amount</span>
+          <span class="fw-semibold">&#8377; {{ totalTaxableAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Total CGST</span>
+          <span class="fw-semibold">&#8377; {{ (totalGst / 2) | number:'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Total SGST</span>
+          <span class="fw-semibold">&#8377; {{ (totalGst / 2) | number:'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Total GST</span>
+          <span class="fw-semibold text-warning">&#8377; {{ totalGst | number:'1.2-2' }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-3 mt-2 bg-primary bg-opacity-10 rounded px-3">
+          <span class="fs-5 fw-bold text-primary">Grand Total</span>
+          <span class="fs-4 fw-bold text-primary">&#8377; {{ grandTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ACTION BUTTONS ========== -->
+<div class="card mb-5">
+  <div class="card-body d-flex justify-content-between align-items-center">
+    <a routerLink="/bills" class="btn btn-outline-secondary">
+      <i class="bi bi-x-lg me-1"></i> Cancel
+    </a>
+    <div>
+      <button class="btn btn-success btn-lg px-5" (click)="saveBill()">
+        <i class="bi bi-check-lg me-2"></i> {{ isEditMode ? 'Update Bill' : 'Save Bill' }}
+      </button>
+    </div>
+  </div>
+</div>

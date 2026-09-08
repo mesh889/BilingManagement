@@ -1,0 +1,44 @@
+<nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #2c3e50;">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" routerLink="/bills">
+      <i class="bi bi-receipt-cutoff me-2 fs-4"></i>
+      <span class="fw-bold">Bill Management</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/bills" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+            <i class="bi bi-list-ul me-1"></i> All Bills
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/bills/create" routerLinkActive="active">
+            <i class="bi bi-plus-circle me-1"></i> Create Bill
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/purchases" routerLinkActive="active">
+            <i class="bi bi-cart me-1"></i> Purchases
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/report" routerLinkActive="active">
+            <i class="bi bi-bar-chart-line me-1"></i> Report
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/backup" routerLinkActive="active">
+            <i class="bi bi-cloud-arrow-down me-1"></i> Backup
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid py-4 px-4">
+  <router-outlet></router-outlet>
+</div>

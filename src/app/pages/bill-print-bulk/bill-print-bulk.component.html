@@ -1,0 +1,127 @@
+@if (loading) {
+  <div class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-3">Loading bills...</p>
+  </div>
+}
+
+@for (bill of bills; track bill.id; let last = $last) {
+  <div class="a4-page" [class.page-break]="!last">
+
+    <div class="letterhead">
+      <div class="letterhead-name">{{ bill.supplier.name }}</div>
+      <div class="letterhead-details">
+        {{ bill.supplier.address }} | GSTIN: {{ bill.supplier.gstNo }} | PAN: {{ bill.supplier.pan }} | Ph: {{ bill.supplier.phone }}
+      </div>
+    </div>
+
+    <div class="invoice-title">Tax Invoice</div>
+
+    <div class="supplier-row">
+      <div class="label-text">Supplier</div>
+      <div class="name-text">{{ bill.supplier.name }}</div>
+      <div class="info-text">{{ bill.supplier.address }} | GSTIN: {{ bill.supplier.gstNo }} | PAN: {{ bill.supplier.pan }} | Ph: {{ bill.supplier.phone }}</div>
+    </div>
+
+    <table class="info-table">
+      <tr>
+        <td class="info-left">
+          <div class="label-text">Bill To (Buyer)</div>
+          <div class="name-text">{{ bill.buyer.name }}</div>
+          <div class="info-text">{{ bill.buyer.address }}<br>GSTIN: {{ bill.buyer.gstNo }} | PAN: {{ bill.buyer.pan }} | Ph: {{ bill.buyer.phone }}</div>
+        </td>
+        <td class="info-right">
+          <table class="detail-table">
+            <tr><td class="dt-label">Invoice No:</td><td class="dt-value">{{ bill.billNumber }}</td></tr>
+            <tr><td class="dt-label">Date:</td><td class="dt-value">{{ bill.billDate }}</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Sr</th><th>Description</th><th>HSN</th><th>Unit</th><th>Qty</th>
+          <th>Rate</th><th>Disc%</th><th>CGST%</th><th>SGST%</th><th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of filledItems(bill); track item.srNo; let i = $index) {
+          <tr>
+            <td class="tc">{{ i + 1 }}</td>
+            <td>{{ item.description }}</td>
+            <td class="tc">{{ item.hsnSac }}</td>
+            <td class="tc">{{ item.unit }}</td>
+            <td class="tr">{{ item.quantity }}</td>
+            <td class="tr">{{ item.rate | number:'1.2-2' }}</td>
+            <td class="tc">{{ item.discount || 0 }}</td>
+            <td class="tc">{{ item.cgstPercent || 0 }}</td>
+            <td class="tc">{{ item.sgstPercent || 0 }}</td>
+            <td class="tr">{{ item.amount | number:'1.2-2' }}</td>
+          </tr>
+        }
+        @for (e of emptyRows(bill); track $index) {
+          <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="3" class="tr"><strong>Total</strong></td>
+          <td class="tc"><strong>{{ totalUnits(bill) }}</strong></td>
+          <td colspan="5"></td>
+          <td class="tr"><strong>{{ totalItemsAmount(bill) | number:'1.2-2' }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="words-section">
+      <strong>Amount Chargeable (in words):</strong> <em>{{ numberToWords(grandTotal(bill)) }}</em>
+    </div>
+
+    <table class="gst-table">
+      <thead>
+        <tr><th rowspan="2">HSN/SAC</th><th rowspan="2">Taxable Value</th><th colspan="2">CGST</th><th colspan="2">SGST</th><th rowspan="2">Total Tax</th></tr>
+        <tr><th>Rate</th><th>Amt</th><th>Rate</th><th>Amt</th></tr>
+      </thead>
+      <tbody>
+        @for (row of gstSummary(bill); track row.hsnSac) {
+          <tr>
+            <td class="tc">{{ row.hsnSac }}</td>
+            <td class="tr">{{ row.taxableValue | number:'1.2-2' }}</td>
+            <td class="tc">{{ row.cgstRate }}%</td>
+            <td class="tr">{{ row.cgstAmount | number:'1.2-2' }}</td>
+            <td class="tc">{{ row.sgstRate }}%</td>
+            <td class="tr">{{ row.sgstAmount | number:'1.2-2' }}</td>
+            <td class="tr"><strong>{{ row.totalTax | number:'1.2-2' }}</strong></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="words-section small-text">
+      <strong>Tax Amount (in words):</strong> {{ numberToWords(totalGst(bill)) }}
+    </div>
+
+    <div class="bottom-section">
+      <div class="bank-side">
+        <div><strong>Company's Bank Details</strong></div>
+        <div>Bank: {{ bill.bankDetails.bankName }}</div>
+        <div>A/c: {{ bill.bankDetails.accountNumber }}</div>
+        <div>IFSC: {{ bill.bankDetails.ifscCode }}</div>
+        <div class="sig-name">For {{ bill.supplier.name }}</div>
+      </div>
+      <div class="totals-side">
+        <div class="total-line">Taxable: &#8377; {{ totalTaxable(bill) | number:'1.2-2' }}</div>
+        <div class="total-line">CGST: &#8377; {{ (totalGst(bill) / 2) | number:'1.2-2' }}</div>
+        <div class="total-line">SGST: &#8377; {{ (totalGst(bill) / 2) | number:'1.2-2' }}</div>
+        <div class="grand-line">Grand Total: &#8377; {{ grandTotal(bill) | number:'1.2-2' }}</div>
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div>Authorised Signatory</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+}

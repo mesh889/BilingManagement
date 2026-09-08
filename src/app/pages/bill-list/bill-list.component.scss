@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.page-link {
+  cursor: pointer;
+}
+
+.page-item.disabled .page-link {
+  cursor: not-allowed;
+}
+
+// Ensure filter card body doesn't clip the dropdown
+:host ::ng-deep .card {
+  overflow: visible !important;
+}
+:host ::ng-deep .card-body {
+  overflow: visible !important;
+}
+
+.supplier-wrap {
+  position: relative;
+}
+
+.supplier-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 350px;
+  z-index: 1060;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  margin-top: 2px;
+}
+
+.supplier-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.supplier-list label.supplier-option {
+  cursor: pointer;
+  margin: 0;
+  font-size: 0.875rem;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: #e8f4fd;
+  }
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+  }
+}

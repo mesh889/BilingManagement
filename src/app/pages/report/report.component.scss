@@ -1,0 +1,52 @@
+:host { display: block; }
+.nav-link { cursor: pointer; }
+
+.print-only { display: none; }
+
+@media print {
+  .no-print,
+  .nav-tabs,
+  .card:first-of-type { // filter card
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-header {
+    margin-bottom: 10px;
+    h3 { font-size: 18px; }
+    p { font-size: 11px; }
+  }
+
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  table {
+    font-size: 9px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  thead {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .table-dark th,
+  .table-success td,
+  .table-warning td,
+  .bg-success,
+  .bg-warning {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    size: landscape;
+    margin: 8mm;
+  }
+}

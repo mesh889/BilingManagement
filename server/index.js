@@ -377,14 +377,9 @@ app.get('/api/report', (req, res) => {
     supplier,
     fromDate,
     toDate,
-    proforma
+    proforma,
+    quotation
   } = req.query;
-
-  /*
-   * ============================================================
-   * FILTER VALUES
-   * ============================================================
-   */
 
   const selectedSupplier =
     supplier ? String(supplier).trim() : '';
@@ -395,39 +390,18 @@ app.get('/api/report', (req, res) => {
   const selectedToDate =
     toDate ? String(toDate).trim() : '';
 
-  /*
-   * Supported values:
-   *
-   * include  -> Include Proforma invoices
-   * exclude  -> Exclude Proforma invoices
-   *
-   * Default = exclude
-   */
-  const proformaFilter =
-    proforma === 'include'
-      ? 'include'
-      : 'exclude';
+  // Default: exclude Proforma
+  const excludeProforma =
+    proforma === 'exclude';
+
+  // Default: exclude Quotations
+  const excludeQuotation =
+    quotation === 'exclude';
 
 
-  /*
-   * ============================================================
-   * SALES / BILLS
-   * ============================================================
-   *
-   * IMPORTANT:
-   *
-   * Your bills table contains:
-   *
-   * buyerName
-   * supplierName
-   *
-   * For "Supplier Details" we MUST use supplierName.
-   *
-   * Therefore:
-   *
-   * supplierName as name
-   * supplierGstNo as gstNo
-   */
+  // ============================================================
+  // SALES / BILLS
+  // ============================================================
 
   let salesQuery = `
     SELECT
@@ -455,10 +429,7 @@ app.get('/api/report', (req, res) => {
   const salesParams = [];
 
 
-  /*
-   * YEAR FILTER
-   */
-
+  // Year
   if (year) {
     salesQuery += `
       AND substr(billDate, 1, 4) = ?
@@ -468,10 +439,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * MONTH FILTER
-   */
-
+  // Month
   if (month) {
     salesQuery += `
       AND substr(billDate, 6, 2) = ?
@@ -483,16 +451,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * SUPPLIER FILTER
-   *
-   * Only apply when user selected a supplier.
-   *
-   * If empty:
-   *
-   *   All suppliers are returned.
-   */
-
+  // Supplier
   if (selectedSupplier) {
     salesQuery += `
       AND LOWER(TRIM(COALESCE(supplierName, '')))
@@ -503,10 +462,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * FROM DATE
-   */
-
+  // From date
   if (selectedFromDate) {
     salesQuery += `
       AND date(billDate) >= date(?)
@@ -516,10 +472,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * TO DATE
-   */
-
+  // To date
   if (selectedToDate) {
     salesQuery += `
       AND date(billDate) <= date(?)
@@ -529,23 +482,26 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * PROFORMA FILTER
-   *
-   * Your invoice example:
-   *
-   * PROFARMA-20260902-0213
-   *
-   * We check both spellings:
-   *
-   * PROFARMA
-   * PROFORMA
-   */
+  // ============================================================
+  // EXCLUDE PROFORMA
+  // ============================================================
 
-  if (proformaFilter === 'exclude') {
+  if (excludeProforma) {
     salesQuery += `
       AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFARMA%'
       AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFORMA%'
+    `;
+  }
+
+
+  // ============================================================
+  // EXCLUDE QUOTATIONS
+  // ============================================================
+
+  if (excludeQuotation) {
+    salesQuery += `
+      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%QUOTATION%'
+      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%QUOTATIONS%'
     `;
   }
 
@@ -559,16 +515,9 @@ app.get('/api/report', (req, res) => {
     db.prepare(salesQuery).all(...salesParams);
 
 
-  /*
-   * ============================================================
-   * COMPUTE CGST / SGST FOR SALES
-   * ============================================================
-   *
-   * Sales table stores totalGst.
-   *
-   * CGST = half
-   * SGST = half
-   */
+  // ============================================================
+  // SALES CGST / SGST
+  // ============================================================
 
   sales.forEach(s => {
 
@@ -584,11 +533,9 @@ app.get('/api/report', (req, res) => {
   });
 
 
-  /*
-   * ============================================================
-   * PURCHASES
-   * ============================================================
-   */
+  // ============================================================
+  // PURCHASES
+  // ============================================================
 
   let purchaseQuery = `
     SELECT
@@ -612,10 +559,7 @@ app.get('/api/report', (req, res) => {
   const purchaseParams = [];
 
 
-  /*
-   * YEAR FILTER
-   */
-
+  // Year
   if (year) {
     purchaseQuery += `
       AND substr(invoiceDate, 1, 4) = ?
@@ -625,10 +569,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * MONTH FILTER
-   */
-
+  // Month
   if (month) {
     purchaseQuery += `
       AND substr(invoiceDate, 6, 2) = ?
@@ -640,12 +581,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * SUPPLIER FILTER
-   *
-   * Purchases already store supplier in "name".
-   */
-
+  // Supplier
   if (selectedSupplier) {
     purchaseQuery += `
       AND LOWER(TRIM(COALESCE(name, '')))
@@ -656,10 +592,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * FROM DATE
-   */
-
+  // From date
   if (selectedFromDate) {
     purchaseQuery += `
       AND date(invoiceDate) >= date(?)
@@ -669,10 +602,7 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * TO DATE
-   */
-
+  // To date
   if (selectedToDate) {
     purchaseQuery += `
       AND date(invoiceDate) <= date(?)
@@ -682,14 +612,20 @@ app.get('/api/report', (req, res) => {
   }
 
 
-  /*
-   * PROFORMA FILTER FOR PURCHASES
-   */
-
-  if (proformaFilter === 'exclude') {
+  // Exclude Proforma
+  if (excludeProforma) {
     purchaseQuery += `
       AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFARMA%'
       AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFORMA%'
+    `;
+  }
+
+
+  // Exclude Quotations
+  if (excludeQuotation) {
+    purchaseQuery += `
+      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%QUOTATION%'
+      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%QUOTATIONS%'
     `;
   }
 
@@ -703,29 +639,11 @@ app.get('/api/report', (req, res) => {
     db.prepare(purchaseQuery).all(...purchaseParams);
 
 
-  /*
-   * ============================================================
-   * MONTHLY SUMMARY
-   * ============================================================
-   *
-   * IMPORTANT:
-   *
-   * The summary is generated from the FILTERED sales and
-   * purchases arrays.
-   *
-   * Therefore:
-   *
-   * Supplier filter
-   * Date filter
-   * Proforma filter
-   * Year filter
-   * Month filter
-   *
-   * are all reflected in the summary.
-   */
+  // ============================================================
+  // MONTHLY SUMMARY
+  // ============================================================
 
   const monthMap = {};
-
 
   const createMonth = (key) => {
 
@@ -767,9 +685,7 @@ app.get('/api/report', (req, res) => {
       const month =
         createMonth(key)[type];
 
-
       month.count++;
-
 
       month.cgst =
         +(
@@ -777,20 +693,17 @@ app.get('/api/report', (req, res) => {
           Number(row.cgst || 0)
         ).toFixed(2);
 
-
       month.sgst =
         +(
           month.sgst +
           Number(row.sgst || 0)
         ).toFixed(2);
 
-
       month.totalWithTax =
         +(
           month.totalWithTax +
           Number(row.totalWithTax || 0)
         ).toFixed(2);
-
 
       month.totalWithoutTax =
         +(
@@ -801,33 +714,21 @@ app.get('/api/report', (req, res) => {
     };
 
 
-  /*
-   * Add filtered sales
-   */
-
   sales.forEach(s => {
-
     addToMonth(
       s.monthKey,
       'sales',
       s
     );
-
   });
 
 
-  /*
-   * Add filtered purchases
-   */
-
   purchases.forEach(p => {
-
     addToMonth(
       p.monthKey,
       'purchases',
       p
     );
-
   });
 
 
@@ -838,14 +739,9 @@ app.get('/api/report', (req, res) => {
       );
 
 
-  /*
-   * ============================================================
-   * AVAILABLE YEARS
-   * ============================================================
-   *
-   * Keep this independent from the current filters so the
-   * dropdown always knows which years exist.
-   */
+  // ============================================================
+  // AVAILABLE YEARS
+  // ============================================================
 
   const yearsFromSales =
     db
@@ -883,23 +779,9 @@ app.get('/api/report', (req, res) => {
       .reverse();
 
 
-  /*
-   * ============================================================
-   * SUPPLIER LIST
-   * ============================================================
-   *
-   * This is what Angular will use for:
-   *
-   * Supplier Details dropdown
-   *
-   * Bills:
-   *   supplierName
-   *
-   * Purchases:
-   *   name
-   *
-   * Duplicate supplier names are removed.
-   */
+  // ============================================================
+  // SUPPLIERS
+  // ============================================================
 
   const suppliersFromBills =
     db
@@ -939,11 +821,9 @@ app.get('/api/report', (req, res) => {
       );
 
 
-  /*
-   * ============================================================
-   * RESPONSE
-   * ============================================================
-   */
+  // ============================================================
+  // RESPONSE
+  // ============================================================
 
   res.json({
 
@@ -963,12 +843,22 @@ app.get('/api/report', (req, res) => {
       supplier: selectedSupplier,
       fromDate: selectedFromDate,
       toDate: selectedToDate,
-      proforma: proformaFilter
+
+      proforma:
+        excludeProforma
+          ? 'exclude'
+          : 'include',
+
+      quotation:
+        excludeQuotation
+          ? 'exclude'
+          : 'include'
     }
 
   });
 
 });
+
 
 
 // Seed some purchases if empty

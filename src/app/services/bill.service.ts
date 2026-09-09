@@ -65,10 +65,53 @@ export class BillService {
   deletePurchase(id: string): Observable<any> { return this.http.delete(`${this.baseUrl}/api/purchases/${id}`); }
 
   // Report
-  getReport(year?: string, month?: string): Observable<any> {
-    let params = '';
-    if (year) params += `year=${year}`;
-    if (month) params += `${params ? '&' : ''}month=${month}`;
-    return this.http.get(`${this.baseUrl}/api/report${params ? '?' + params : ''}`);
+  getReport(
+  year?: string,
+  month?: string,
+  supplier?: string,
+  fromDate?: string,
+  toDate?: string,
+  excludeProforma: boolean = true,
+  excludeQuotation: boolean = true
+): Observable<any> {
+
+  const params = new URLSearchParams();
+
+  if (year) {
+    params.set('year', year);
   }
+
+  if (month) {
+    params.set('month', month);
+  }
+
+  if (supplier) {
+    params.set('supplier', supplier);
+  }
+
+  if (fromDate) {
+    params.set('fromDate', fromDate);
+  }
+
+  if (toDate) {
+    params.set('toDate', toDate);
+  }
+
+  params.set(
+    'excludeProforma',
+    String(excludeProforma)
+  );
+
+  params.set(
+    'excludeQuotation',
+    String(excludeQuotation)
+  );
+
+  const queryString = params.toString();
+
+  return this.http.get(
+    `${this.baseUrl}/api/report${queryString ? '?' + queryString : ''}`
+  );
+}
+
 }

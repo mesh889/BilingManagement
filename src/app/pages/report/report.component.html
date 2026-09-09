@@ -1,201 +1,1064 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h4 class="mb-1 fw-bold"><i class="bi bi-bar-chart-line me-2"></i>Sales & Purchase Report</h4>
-    <p class="text-muted mb-0 small">Monthly / Yearly view of sales, purchases, GST summary</p>
+    <h4 class="mb-1 fw-bold">
+      <i class="bi bi-bar-chart-line me-2"></i>
+      Sales & Purchase Report
+    </h4>
+
+    <p class="text-muted mb-0 small">
+      Sales, purchases, GST summary and invoice details
+    </p>
   </div>
+
   <div class="d-flex gap-2 no-print">
-    <button class="btn btn-success" (click)="downloadExcel()">
-      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
+    <button
+      class="btn btn-success"
+      type="button"
+      (click)="downloadExcel()"
+    >
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+      Excel
     </button>
-    <button class="btn btn-danger" (click)="printReport()">
-      <i class="bi bi-file-earmark-pdf me-1"></i> PDF / Print
+
+    <button
+      class="btn btn-danger"
+      type="button"
+      (click)="printReport()"
+    >
+      <i class="bi bi-file-earmark-pdf me-1"></i>
+      PDF / Print
     </button>
   </div>
 </div>
 
-<!-- Print Header (only visible during print) -->
+
+<!-- ========================================================= -->
+<!-- PRINT HEADER                                               -->
+<!-- ========================================================= -->
+
 <div class="print-only print-header">
-  <h3 class="text-center fw-bold mb-1">Sales & Purchase Report</h3>
-  <p class="text-center text-muted mb-3">{{ filterLabel }} &mdash; {{ activeTab === 'summary' ? 'Monthly Summary' : activeTab === 'sales' ? 'Sales Details' : 'Purchase Details' }}</p>
+  <h3 class="text-center fw-bold mb-1">
+    Sales & Purchase Report
+  </h3>
+
+  <p class="text-center text-muted mb-3">
+    {{ filterLabel }}
+    &mdash;
+    {{
+      activeTab === 'summary'
+        ? 'Monthly Summary'
+        : activeTab === 'sales'
+          ? 'Sales Details'
+          : 'Purchase Details'
+    }}
+  </p>
 </div>
 
-<!-- Filters -->
-<div class="card mb-4">
-  <div class="card-body py-3">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Year</label>
-        <select class="form-select" [(ngModel)]="selectedYear" (ngModelChange)="onFilterChange()">
-          <option value="">All Years</option>
-          @for (y of availableYears; track y) { <option [value]="y">{{ y }}</option> }
-        </select>
+
+<!-- ========================================================= -->
+<!-- FILTERS                                                    -->
+<!-- ========================================================= -->
+
+<div class="card mb-4 no-print">
+
+  <div class="card-header bg-light">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+      <div>
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-funnel me-2"></i>
+          Report Filters
+        </h6>
+
+        <small class="text-muted">
+          Select supplier, date range and proforma invoice option
+        </small>
       </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Month</label>
-        <select class="form-select" [(ngModel)]="selectedMonth" (ngModelChange)="onFilterChange()">
-          @for (m of months; track m.value) { <option [value]="m.value">{{ m.label }}</option> }
-        </select>
-      </div>
+
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        (click)="clearFilters()"
+      >
+        <i class="bi bi-x-circle me-1"></i>
+        Clear Filters
+      </button>
+
     </div>
+
   </div>
+
+
+  <div class="card-body">
+
+    <div class="row g-3">
+
+      <!-- ===================================================== -->
+      <!-- SUPPLIER DROPDOWN                                     -->
+      <!-- ===================================================== -->
+
+      <div class="col-md-4">
+
+        <label
+          for="supplier"
+          class="form-label small fw-semibold"
+        >
+          Supplier Details
+        </label>
+
+        <select
+          id="supplier"
+          class="form-select"
+          [(ngModel)]="selectedSupplier"
+        >
+
+          <option value="">
+            All Suppliers
+          </option>
+
+          @for (
+            supplier of suppliers;
+            track supplier
+          ) {
+
+            <option [value]="supplier">
+              {{ supplier }}
+            </option>
+
+          }
+
+        </select>
+
+        <small class="text-muted">
+          Leave as All Suppliers to show all bills.
+        </small>
+
+      </div>
+
+
+      <!-- ===================================================== -->
+      <!-- FROM DATE                                              -->
+      <!-- ===================================================== -->
+
+      <div class="col-md-4">
+
+        <label
+          for="fromDate"
+          class="form-label small fw-semibold"
+        >
+          From Date
+        </label>
+
+        <input
+          id="fromDate"
+          type="date"
+          class="form-control"
+          [(ngModel)]="fromDate"
+        />
+
+      </div>
+
+
+      <!-- ===================================================== -->
+      <!-- TO DATE                                                -->
+      <!-- ===================================================== -->
+
+      <div class="col-md-4">
+
+        <label
+          for="toDate"
+          class="form-label small fw-semibold"
+        >
+          To Date
+        </label>
+
+        <input
+          id="toDate"
+          type="date"
+          class="form-control"
+          [(ngModel)]="toDate"
+        />
+
+      </div>
+
+    </div>
+
+
+    <hr class="my-4">
+
+
+    <!-- ===================================================== -->
+    <!-- PROFORMA RADIO BUTTONS                                 -->
+    <!-- ===================================================== -->
+
+    <div class="row">
+
+      <div class="col-md-8">
+
+        <label class="form-label small fw-semibold d-block">
+          Proforma Invoices
+        </label>
+
+        <div class="d-flex flex-wrap gap-4">
+
+          <!-- EXCLUDE -->
+
+          <div class="form-check">
+
+            <input
+              class="form-check-input"
+              type="radio"
+              name="proformaFilter"
+              id="excludeProforma"
+              value="exclude"
+              [(ngModel)]="proformaFilter"
+            />
+
+            <label
+              class="form-check-label"
+              for="excludeProforma"
+            >
+              <strong>
+                Exclude Proforma
+              </strong>
+            </label>
+
+          </div>
+
+
+          <!-- INCLUDE -->
+
+          <div class="form-check">
+
+            <input
+              class="form-check-input"
+              type="radio"
+              name="proformaFilter"
+              id="includeProforma"
+              value="include"
+              [(ngModel)]="proformaFilter"
+            />
+
+            <label
+              class="form-check-label"
+              for="includeProforma"
+            >
+              Include Proforma
+            </label>
+
+          </div>
+
+        </div>
+
+        <small class="text-muted d-block mt-1">
+          Example:
+          <strong>PROFARMA-20260902-0213</strong>
+          will be excluded when "Exclude Proforma" is selected.
+        </small>
+
+      </div>
+
+
+      <!-- ===================================================== -->
+      <!-- YEAR / MONTH                                          -->
+      <!-- ===================================================== -->
+
+      <div class="col-md-4">
+
+        <div class="row g-2">
+
+          <div class="col-6">
+
+            <label
+              for="selectedYear"
+              class="form-label small fw-semibold"
+            >
+              Year
+            </label>
+
+            <select
+              id="selectedYear"
+              class="form-select"
+              [(ngModel)]="selectedYear"
+              (ngModelChange)="onYearMonthChange()"
+            >
+
+              <option value="">
+                All Years
+              </option>
+
+              @for (
+                y of availableYears;
+                track y
+              ) {
+
+                <option [value]="y">
+                  {{ y }}
+                </option>
+
+              }
+
+            </select>
+
+          </div>
+
+
+          <div class="col-6">
+
+            <label
+              for="selectedMonth"
+              class="form-label small fw-semibold"
+            >
+              Month
+            </label>
+
+            <select
+              id="selectedMonth"
+              class="form-select"
+              [(ngModel)]="selectedMonth"
+              (ngModelChange)="onYearMonthChange()"
+            >
+
+              @for (
+                m of months;
+                track m.value
+              ) {
+
+                <option [value]="m.value">
+                  {{ m.label }}
+                </option>
+
+              }
+
+            </select>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- APPLY FILTER BUTTON                                    -->
+    <!-- ===================================================== -->
+
+    <div class="d-flex justify-content-end mt-4">
+
+      <button
+        type="button"
+        class="btn btn-primary px-4"
+        (click)="onApplyFilters()"
+      >
+        <i class="bi bi-funnel-fill me-1"></i>
+        Apply Filter
+      </button>
+
+    </div>
+
+  </div>
+
 </div>
 
-<!-- Tabs -->
+
+<!-- ========================================================= -->
+<!-- ACTIVE FILTER DISPLAY                                      -->
+<!-- ========================================================= -->
+
+<div class="alert alert-light border mb-3">
+
+  <div class="d-flex flex-wrap align-items-center gap-2">
+
+    <span class="fw-semibold">
+      <i class="bi bi-funnel me-1"></i>
+      Current Filter:
+    </span>
+
+    <span class="badge bg-primary">
+      {{ filterLabel }}
+    </span>
+
+    <span class="ms-auto small text-muted">
+      Sales:
+      <strong>{{ sales.length }}</strong>
+
+      &nbsp;|&nbsp;
+
+      Purchases:
+      <strong>{{ purchases.length }}</strong>
+
+      &nbsp;|&nbsp;
+
+      Total Bills:
+      <strong>
+        {{ sales.length + purchases.length }}
+      </strong>
+    </span>
+
+  </div>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- TABS                                                       -->
+<!-- ========================================================= -->
+
 <ul class="nav nav-tabs mb-3">
+
   <li class="nav-item">
-    <a class="nav-link" [class.active]="activeTab === 'summary'" (click)="activeTab = 'summary'" style="cursor:pointer;">
-      <i class="bi bi-graph-up me-1"></i> Monthly Summary
+
+    <a
+      class="nav-link"
+      [class.active]="activeTab === 'summary'"
+      (click)="activeTab = 'summary'"
+      style="cursor: pointer;"
+    >
+
+      <i class="bi bi-graph-up me-1"></i>
+
+      Monthly Summary
+
     </a>
+
   </li>
+
+
   <li class="nav-item">
-    <a class="nav-link" [class.active]="activeTab === 'sales'" (click)="activeTab = 'sales'" style="cursor:pointer;">
-      <i class="bi bi-receipt me-1"></i> Sales ({{ sales.length }})
+
+    <a
+      class="nav-link"
+      [class.active]="activeTab === 'sales'"
+      (click)="activeTab = 'sales'"
+      style="cursor: pointer;"
+    >
+
+      <i class="bi bi-receipt me-1"></i>
+
+      Sales
+
+      <span class="badge bg-success ms-1">
+        {{ sales.length }}
+      </span>
+
     </a>
+
   </li>
+
+
   <li class="nav-item">
-    <a class="nav-link" [class.active]="activeTab === 'purchases'" (click)="activeTab = 'purchases'" style="cursor:pointer;">
-      <i class="bi bi-cart me-1"></i> Purchases ({{ purchases.length }})
+
+    <a
+      class="nav-link"
+      [class.active]="activeTab === 'purchases'"
+      (click)="activeTab = 'purchases'"
+      style="cursor: pointer;"
+    >
+
+      <i class="bi bi-cart me-1"></i>
+
+      Purchases
+
+      <span class="badge bg-warning text-dark ms-1">
+        {{ purchases.length }}
+      </span>
+
     </a>
+
   </li>
+
 </ul>
 
-<!-- ===== MONTHLY SUMMARY TAB ===== -->
+
+<!-- ========================================================= -->
+<!-- MONTHLY SUMMARY TAB                                        -->
+<!-- ========================================================= -->
+
 @if (activeTab === 'summary') {
+
   <div class="card">
+
     <div class="card-body p-0">
+
       <div class="table-responsive">
-        <table class="table table-bordered table-sm align-middle mb-0">
+
+        <table
+          class="table table-bordered table-sm align-middle mb-0"
+        >
+
           <thead class="table-dark">
+
             <tr class="text-center">
-              <th rowspan="2" class="align-middle">Month</th>
-              <th colspan="5" class="bg-success text-white">Sales</th>
-              <th colspan="5" class="bg-warning text-dark">Purchases</th>
+
+              <th
+                rowspan="2"
+                class="align-middle"
+              >
+                Month
+              </th>
+
+              <th
+                colspan="5"
+                class="bg-success text-white"
+              >
+                Sales
+              </th>
+
+              <th
+                colspan="5"
+                class="bg-warning text-dark"
+              >
+                Purchases
+              </th>
+
             </tr>
+
+
             <tr class="text-center small">
-              <th>Count</th><th>CGST</th><th>SGST</th><th>With Tax</th><th>Without Tax</th>
-              <th>Count</th><th>CGST</th><th>SGST</th><th>With Tax</th><th>Without Tax</th>
+
+              <th>Count</th>
+              <th>CGST</th>
+              <th>SGST</th>
+              <th>With Tax</th>
+              <th>Without Tax</th>
+
+              <th>Count</th>
+              <th>CGST</th>
+              <th>SGST</th>
+              <th>With Tax</th>
+              <th>Without Tax</th>
+
             </tr>
+
           </thead>
+
+
           <tbody>
-            @for (m of monthlySummary; track m.month) {
+
+            @for (
+              m of monthlySummary;
+              track m.month
+            ) {
+
               <tr>
-                <td class="fw-semibold">{{ monthName(m.month) }}</td>
-                <td class="text-center">{{ m.sales.count }}</td>
-                <td class="text-end">&#8377; {{ m.sales.cgst | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ m.sales.sgst | number:'1.2-2' }}</td>
-                <td class="text-end fw-semibold text-success">&#8377; {{ m.sales.totalWithTax | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ m.sales.totalWithoutTax | number:'1.2-2' }}</td>
-                <td class="text-center">{{ m.purchases.count }}</td>
-                <td class="text-end">&#8377; {{ m.purchases.cgst | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ m.purchases.sgst | number:'1.2-2' }}</td>
-                <td class="text-end fw-semibold text-danger">&#8377; {{ m.purchases.totalWithTax | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ m.purchases.totalWithoutTax | number:'1.2-2' }}</td>
+
+                <td class="fw-semibold">
+                  {{ monthName(m.month) }}
+                </td>
+
+
+                <!-- SALES -->
+
+                <td class="text-center">
+                  {{ m.sales.count }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ m.sales.cgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ m.sales.sgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end fw-semibold text-success">
+                  &#8377;
+                  {{ m.sales.totalWithTax | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ m.sales.totalWithoutTax | number:'1.2-2' }}
+                </td>
+
+
+                <!-- PURCHASES -->
+
+                <td class="text-center">
+                  {{ m.purchases.count }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ m.purchases.cgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ m.purchases.sgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end fw-semibold text-danger">
+                  &#8377;
+                  {{ m.purchases.totalWithTax | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ m.purchases.totalWithoutTax | number:'1.2-2' }}
+                </td>
+
               </tr>
+
             }
+
           </tbody>
+
+
           @if (monthlySummary.length === 0) {
-            <tbody><tr><td colspan="11" class="text-center py-4 text-muted">No data for selected period.</td></tr></tbody>
+
+            <tbody>
+
+              <tr>
+
+                <td
+                  colspan="11"
+                  class="text-center py-5 text-muted"
+                >
+
+                  <i
+                    class="bi bi-inbox fs-2 d-block mb-2"
+                  ></i>
+
+                  No bills found for the selected filters.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
           }
+
         </table>
+
       </div>
+
     </div>
+
   </div>
+
 }
 
-<!-- ===== SALES TAB ===== -->
+
+<!-- ========================================================= -->
+<!-- SALES TAB                                                  -->
+<!-- ========================================================= -->
+
 @if (activeTab === 'sales') {
+
   <div class="card">
+
     <div class="card-body p-0">
+
       <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
+
+        <table
+          class="table table-hover table-sm align-middle mb-0"
+        >
+
           <thead class="table-light">
+
             <tr>
-              <th class="ps-3">#</th>
-              <th>Invoice No</th>
-              <th>Date</th>
-              <th>Name</th>
-              <th>GST No</th>
-              <th class="text-end">CGST</th>
-              <th class="text-end">SGST</th>
-              <th class="text-end">With Tax</th>
-              <th class="text-end">Without Tax</th>
+
+              <th class="ps-3">
+                #
+              </th>
+
+              <th>
+                Invoice No
+              </th>
+
+              <th>
+                Date
+              </th>
+
+              <th>
+                Name
+              </th>
+
+              <th>
+                GST No
+              </th>
+
+              <th class="text-end">
+                CGST
+              </th>
+
+              <th class="text-end">
+                SGST
+              </th>
+
+              <th class="text-end">
+                With Tax
+              </th>
+
+              <th class="text-end">
+                Without Tax
+              </th>
+
             </tr>
+
           </thead>
+
+
           <tbody>
-            @for (s of sales; track s.invoiceNo; let i = $index) {
+
+            @for (
+              s of sales;
+              track s.invoiceNo;
+              let i = $index
+            ) {
+
               <tr>
-                <td class="ps-3 text-muted">{{ i + 1 }}</td>
-                <td class="fw-semibold text-primary">{{ s.invoiceNo }}</td>
-                <td>{{ s.invoiceDate }}</td>
-                <td>{{ s.name }}</td>
-                <td class="small">{{ s.gstNo }}</td>
-                <td class="text-end">&#8377; {{ s.cgst | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ s.sgst | number:'1.2-2' }}</td>
-                <td class="text-end fw-semibold">&#8377; {{ s.totalWithTax | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ s.totalWithoutTax | number:'1.2-2' }}</td>
+
+                <td class="ps-3 text-muted">
+                  {{ i + 1 }}
+                </td>
+
+
+                <td class="fw-semibold text-primary">
+
+                  {{ s.invoiceNo }}
+
+                  @if (
+                    s.invoiceNo?.toLowerCase().includes('proforma') ||
+                    s.invoiceNo?.toLowerCase().includes('profarma')
+                  ) {
+
+                    <span class="badge bg-info text-dark ms-1">
+                      Proforma
+                    </span>
+
+                  }
+
+                </td>
+
+
+                <td>
+                  {{ s.invoiceDate }}
+                </td>
+
+                <td>
+                  {{ s.name }}
+                </td>
+
+                <td class="small">
+                  {{ s.gstNo }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ s.cgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ s.sgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end fw-semibold">
+                  &#8377;
+                  {{ s.totalWithTax | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ s.totalWithoutTax | number:'1.2-2' }}
+                </td>
+
               </tr>
+
             }
+
           </tbody>
-          <tfoot class="table-success">
-            <tr class="fw-bold">
-              <td colspan="5" class="text-end ps-3">Total Sales</td>
-              <td class="text-end">&#8377; {{ salesTotals.cgst | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ salesTotals.sgst | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ salesTotals.withTax | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ salesTotals.withoutTax | number:'1.2-2' }}</td>
-            </tr>
-          </tfoot>
+
+
+          @if (sales.length === 0) {
+
+            <tbody>
+
+              <tr>
+
+                <td
+                  colspan="9"
+                  class="text-center py-5 text-muted"
+                >
+
+                  <i
+                    class="bi bi-receipt fs-2 d-block mb-2"
+                  ></i>
+
+                  No sales found for the selected filters.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          }
+
+
+          @if (sales.length > 0) {
+
+            <tfoot class="table-success">
+
+              <tr class="fw-bold">
+
+                <td
+                  colspan="5"
+                  class="text-end ps-3"
+                >
+                  Total Sales
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ salesTotals.cgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ salesTotals.sgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ salesTotals.withTax | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ salesTotals.withoutTax | number:'1.2-2' }}
+                </td>
+
+              </tr>
+
+            </tfoot>
+
+          }
+
         </table>
+
       </div>
+
     </div>
+
   </div>
+
 }
 
-<!-- ===== PURCHASES TAB ===== -->
+
+<!-- ========================================================= -->
+<!-- PURCHASES TAB                                              -->
+<!-- ========================================================= -->
+
 @if (activeTab === 'purchases') {
+
   <div class="card">
+
     <div class="card-body p-0">
+
       <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
+
+        <table
+          class="table table-hover table-sm align-middle mb-0"
+        >
+
           <thead class="table-light">
+
             <tr>
-              <th class="ps-3">#</th>
-              <th>Invoice No</th>
-              <th>Date</th>
-              <th>Name</th>
-              <th>GST No</th>
-              <th class="text-end">CGST</th>
-              <th class="text-end">SGST</th>
-              <th class="text-end">With Tax</th>
-              <th class="text-end">Without Tax</th>
+
+              <th class="ps-3">
+                #
+              </th>
+
+              <th>
+                Invoice No
+              </th>
+
+              <th>
+                Date
+              </th>
+
+              <th>
+                Name
+              </th>
+
+              <th>
+                GST No
+              </th>
+
+              <th class="text-end">
+                CGST
+              </th>
+
+              <th class="text-end">
+                SGST
+              </th>
+
+              <th class="text-end">
+                With Tax
+              </th>
+
+              <th class="text-end">
+                Without Tax
+              </th>
+
             </tr>
+
           </thead>
+
+
           <tbody>
-            @for (p of purchases; track p.invoiceNo; let i = $index) {
+
+            @for (
+              p of purchases;
+              track p.invoiceNo;
+              let i = $index
+            ) {
+
               <tr>
-                <td class="ps-3 text-muted">{{ i + 1 }}</td>
-                <td class="fw-semibold text-primary">{{ p.invoiceNo }}</td>
-                <td>{{ p.invoiceDate }}</td>
-                <td>{{ p.name }}</td>
-                <td class="small">{{ p.gstNo }}</td>
-                <td class="text-end">&#8377; {{ p.cgst | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ p.sgst | number:'1.2-2' }}</td>
-                <td class="text-end fw-semibold">&#8377; {{ p.totalWithTax | number:'1.2-2' }}</td>
-                <td class="text-end">&#8377; {{ p.totalWithoutTax | number:'1.2-2' }}</td>
+
+                <td class="ps-3 text-muted">
+                  {{ i + 1 }}
+                </td>
+
+
+                <td class="fw-semibold text-primary">
+
+                  {{ p.invoiceNo }}
+
+                  @if (
+                    p.invoiceNo?.toLowerCase().includes('proforma') ||
+                    p.invoiceNo?.toLowerCase().includes('profarma')
+                  ) {
+
+                    <span class="badge bg-info text-dark ms-1">
+                      Proforma
+                    </span>
+
+                  }
+
+                </td>
+
+
+                <td>
+                  {{ p.invoiceDate }}
+                </td>
+
+                <td>
+                  {{ p.name }}
+                </td>
+
+                <td class="small">
+                  {{ p.gstNo }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ p.cgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ p.sgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end fw-semibold">
+                  &#8377;
+                  {{ p.totalWithTax | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ p.totalWithoutTax | number:'1.2-2' }}
+                </td>
+
               </tr>
+
             }
+
           </tbody>
-          <tfoot class="table-warning">
-            <tr class="fw-bold">
-              <td colspan="5" class="text-end ps-3">Total Purchases</td>
-              <td class="text-end">&#8377; {{ purchasesTotals.cgst | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ purchasesTotals.sgst | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ purchasesTotals.withTax | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ purchasesTotals.withoutTax | number:'1.2-2' }}</td>
-            </tr>
-          </tfoot>
+
+
+          @if (purchases.length === 0) {
+
+            <tbody>
+
+              <tr>
+
+                <td
+                  colspan="9"
+                  class="text-center py-5 text-muted"
+                >
+
+                  <i
+                    class="bi bi-cart fs-2 d-block mb-2"
+                  ></i>
+
+                  No purchases found for the selected filters.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          }
+
+
+          @if (purchases.length > 0) {
+
+            <tfoot class="table-warning">
+
+              <tr class="fw-bold">
+
+                <td
+                  colspan="5"
+                  class="text-end ps-3"
+                >
+                  Total Purchases
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ purchasesTotals.cgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ purchasesTotals.sgst | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ purchasesTotals.withTax | number:'1.2-2' }}
+                </td>
+
+                <td class="text-end">
+                  &#8377;
+                  {{ purchasesTotals.withoutTax | number:'1.2-2' }}
+                </td>
+
+              </tr>
+
+            </tfoot>
+
+          }
+
         </table>
+
       </div>
+
     </div>
+
   </div>
+
 }

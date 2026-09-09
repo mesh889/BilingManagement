@@ -371,53 +371,605 @@ app.delete('/api/purchases/:id', (req, res) => {
 
 // ===== Report API =====
 app.get('/api/report', (req, res) => {
-  const { year, month } = req.query;
+  const {
+    year,
+    month,
+    supplier,
+    fromDate,
+    toDate,
+    proforma
+  } = req.query;
 
-  // Sales from bills
-  let salesQuery = `SELECT billNumber as invoiceNo, billDate as invoiceDate, buyerName as name, buyerGstNo as gstNo,
-    totalAmount as taxableAmount, totalGst, grandTotal as totalWithTax, totalAmount as totalWithoutTax,
-    substr(billDate,1,7) as monthKey FROM bills WHERE 1=1`;
+  /*
+   * ============================================================
+   * FILTER VALUES
+   * ============================================================
+   */
+
+  const selectedSupplier =
+    supplier ? String(supplier).trim() : '';
+
+  const selectedFromDate =
+    fromDate ? String(fromDate).trim() : '';
+
+  const selectedToDate =
+    toDate ? String(toDate).trim() : '';
+
+  /*
+   * Supported values:
+   *
+   * include  -> Include Proforma invoices
+   * exclude  -> Exclude Proforma invoices
+   *
+   * Default = exclude
+   */
+  const proformaFilter =
+    proforma === 'include'
+      ? 'include'
+      : 'exclude';
+
+
+  /*
+   * ============================================================
+   * SALES / BILLS
+   * ============================================================
+   *
+   * IMPORTANT:
+   *
+   * Your bills table contains:
+   *
+   * buyerName
+   * supplierName
+   *
+   * For "Supplier Details" we MUST use supplierName.
+   *
+   * Therefore:
+   *
+   * supplierName as name
+   * supplierGstNo as gstNo
+   */
+
+  let salesQuery = `
+    SELECT
+      billNumber AS invoiceNo,
+      billDate AS invoiceDate,
+
+      supplierName AS name,
+      supplierGstNo AS gstNo,
+
+      buyerName AS buyerName,
+      buyerGstNo AS buyerGstNo,
+
+      totalAmount AS taxableAmount,
+      totalGst,
+      grandTotal AS totalWithTax,
+      totalAmount AS totalWithoutTax,
+
+      substr(billDate, 1, 7) AS monthKey
+
+    FROM bills
+
+    WHERE 1 = 1
+  `;
+
   const salesParams = [];
-  if (year) { salesQuery += ` AND substr(billDate,1,4) = ?`; salesParams.push(year); }
-  if (month) { salesQuery += ` AND substr(billDate,6,2) = ?`; salesParams.push(String(month).padStart(2, '0')); }
-  salesQuery += ' ORDER BY billDate DESC';
-  const sales = db.prepare(salesQuery).all(...salesParams);
 
-  // Compute CGST/SGST per sale (half of totalGst)
-  sales.forEach(s => { s.cgst = +(s.totalGst / 2).toFixed(2); s.sgst = +(s.totalGst / 2).toFixed(2); });
 
-  // Purchases
-  let purchaseQuery = `SELECT invoiceNo, invoiceDate, name, gstNo, taxableAmount, cgst, sgst, totalWithTax, totalWithoutTax,
-    substr(invoiceDate,1,7) as monthKey FROM purchases WHERE 1=1`;
+  /*
+   * YEAR FILTER
+   */
+
+  if (year) {
+    salesQuery += `
+      AND substr(billDate, 1, 4) = ?
+    `;
+
+    salesParams.push(String(year));
+  }
+
+
+  /*
+   * MONTH FILTER
+   */
+
+  if (month) {
+    salesQuery += `
+      AND substr(billDate, 6, 2) = ?
+    `;
+
+    salesParams.push(
+      String(month).padStart(2, '0')
+    );
+  }
+
+
+  /*
+   * SUPPLIER FILTER
+   *
+   * Only apply when user selected a supplier.
+   *
+   * If empty:
+   *
+   *   All suppliers are returned.
+   */
+
+  if (selectedSupplier) {
+    salesQuery += `
+      AND LOWER(TRIM(COALESCE(supplierName, '')))
+          = LOWER(TRIM(?))
+    `;
+
+    salesParams.push(selectedSupplier);
+  }
+
+
+  /*
+   * FROM DATE
+   */
+
+  if (selectedFromDate) {
+    salesQuery += `
+      AND date(billDate) >= date(?)
+    `;
+
+    salesParams.push(selectedFromDate);
+  }
+
+
+  /*
+   * TO DATE
+   */
+
+  if (selectedToDate) {
+    salesQuery += `
+      AND date(billDate) <= date(?)
+    `;
+
+    salesParams.push(selectedToDate);
+  }
+
+
+  /*
+   * PROFORMA FILTER
+   *
+   * Your invoice example:
+   *
+   * PROFARMA-20260902-0213
+   *
+   * We check both spellings:
+   *
+   * PROFARMA
+   * PROFORMA
+   */
+
+  if (proformaFilter === 'exclude') {
+    salesQuery += `
+      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFARMA%'
+      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFORMA%'
+    `;
+  }
+
+
+  salesQuery += `
+    ORDER BY billDate DESC
+  `;
+
+
+  const sales =
+    db.prepare(salesQuery).all(...salesParams);
+
+
+  /*
+   * ============================================================
+   * COMPUTE CGST / SGST FOR SALES
+   * ============================================================
+   *
+   * Sales table stores totalGst.
+   *
+   * CGST = half
+   * SGST = half
+   */
+
+  sales.forEach(s => {
+
+    const totalGst =
+      Number(s.totalGst || 0);
+
+    s.cgst =
+      +(totalGst / 2).toFixed(2);
+
+    s.sgst =
+      +(totalGst / 2).toFixed(2);
+
+  });
+
+
+  /*
+   * ============================================================
+   * PURCHASES
+   * ============================================================
+   */
+
+  let purchaseQuery = `
+    SELECT
+      invoiceNo,
+      invoiceDate,
+      name,
+      gstNo,
+      taxableAmount,
+      cgst,
+      sgst,
+      totalWithTax,
+      totalWithoutTax,
+
+      substr(invoiceDate, 1, 7) AS monthKey
+
+    FROM purchases
+
+    WHERE 1 = 1
+  `;
+
   const purchaseParams = [];
-  if (year) { purchaseQuery += ` AND substr(invoiceDate,1,4) = ?`; purchaseParams.push(year); }
-  if (month) { purchaseQuery += ` AND substr(invoiceDate,6,2) = ?`; purchaseParams.push(String(month).padStart(2, '0')); }
-  purchaseQuery += ' ORDER BY invoiceDate DESC';
-  const purchases = db.prepare(purchaseQuery).all(...purchaseParams);
 
-  // Monthly summary
+
+  /*
+   * YEAR FILTER
+   */
+
+  if (year) {
+    purchaseQuery += `
+      AND substr(invoiceDate, 1, 4) = ?
+    `;
+
+    purchaseParams.push(String(year));
+  }
+
+
+  /*
+   * MONTH FILTER
+   */
+
+  if (month) {
+    purchaseQuery += `
+      AND substr(invoiceDate, 6, 2) = ?
+    `;
+
+    purchaseParams.push(
+      String(month).padStart(2, '0')
+    );
+  }
+
+
+  /*
+   * SUPPLIER FILTER
+   *
+   * Purchases already store supplier in "name".
+   */
+
+  if (selectedSupplier) {
+    purchaseQuery += `
+      AND LOWER(TRIM(COALESCE(name, '')))
+          = LOWER(TRIM(?))
+    `;
+
+    purchaseParams.push(selectedSupplier);
+  }
+
+
+  /*
+   * FROM DATE
+   */
+
+  if (selectedFromDate) {
+    purchaseQuery += `
+      AND date(invoiceDate) >= date(?)
+    `;
+
+    purchaseParams.push(selectedFromDate);
+  }
+
+
+  /*
+   * TO DATE
+   */
+
+  if (selectedToDate) {
+    purchaseQuery += `
+      AND date(invoiceDate) <= date(?)
+    `;
+
+    purchaseParams.push(selectedToDate);
+  }
+
+
+  /*
+   * PROFORMA FILTER FOR PURCHASES
+   */
+
+  if (proformaFilter === 'exclude') {
+    purchaseQuery += `
+      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFARMA%'
+      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFORMA%'
+    `;
+  }
+
+
+  purchaseQuery += `
+    ORDER BY invoiceDate DESC
+  `;
+
+
+  const purchases =
+    db.prepare(purchaseQuery).all(...purchaseParams);
+
+
+  /*
+   * ============================================================
+   * MONTHLY SUMMARY
+   * ============================================================
+   *
+   * IMPORTANT:
+   *
+   * The summary is generated from the FILTERED sales and
+   * purchases arrays.
+   *
+   * Therefore:
+   *
+   * Supplier filter
+   * Date filter
+   * Proforma filter
+   * Year filter
+   * Month filter
+   *
+   * are all reflected in the summary.
+   */
+
   const monthMap = {};
-  const addToMonth = (key, type, row) => {
-    if (!monthMap[key]) monthMap[key] = { month: key, sales: { count: 0, cgst: 0, sgst: 0, totalWithTax: 0, totalWithoutTax: 0 }, purchases: { count: 0, cgst: 0, sgst: 0, totalWithTax: 0, totalWithoutTax: 0 } };
-    const m = monthMap[key][type];
-    m.count++;
-    m.cgst = +(m.cgst + (row.cgst || 0)).toFixed(2);
-    m.sgst = +(m.sgst + (row.sgst || 0)).toFixed(2);
-    m.totalWithTax = +(m.totalWithTax + (row.totalWithTax || 0)).toFixed(2);
-    m.totalWithoutTax = +(m.totalWithoutTax + (row.totalWithoutTax || 0)).toFixed(2);
+
+
+  const createMonth = (key) => {
+
+    if (!monthMap[key]) {
+
+      monthMap[key] = {
+        month: key,
+
+        sales: {
+          count: 0,
+          cgst: 0,
+          sgst: 0,
+          totalWithTax: 0,
+          totalWithoutTax: 0
+        },
+
+        purchases: {
+          count: 0,
+          cgst: 0,
+          sgst: 0,
+          totalWithTax: 0,
+          totalWithoutTax: 0
+        }
+      };
+
+    }
+
+    return monthMap[key];
   };
-  sales.forEach(s => addToMonth(s.monthKey, 'sales', s));
-  purchases.forEach(p => addToMonth(p.monthKey, 'purchases', p));
 
-  const monthlySummary = Object.values(monthMap).sort((a, b) => b.month.localeCompare(a.month));
 
-  // Available years
-  const yearsFromSales = db.prepare("SELECT DISTINCT substr(billDate,1,4) as y FROM bills").all().map(r => r.y);
-  const yearsFromPurchases = db.prepare("SELECT DISTINCT substr(invoiceDate,1,4) as y FROM purchases").all().map(r => r.y);
-  const availableYears = [...new Set([...yearsFromSales, ...yearsFromPurchases])].sort().reverse();
+  const addToMonth =
+    (key, type, row) => {
 
-  res.json({ sales, purchases, monthlySummary, availableYears });
+      if (!key) {
+        return;
+      }
+
+      const month =
+        createMonth(key)[type];
+
+
+      month.count++;
+
+
+      month.cgst =
+        +(
+          month.cgst +
+          Number(row.cgst || 0)
+        ).toFixed(2);
+
+
+      month.sgst =
+        +(
+          month.sgst +
+          Number(row.sgst || 0)
+        ).toFixed(2);
+
+
+      month.totalWithTax =
+        +(
+          month.totalWithTax +
+          Number(row.totalWithTax || 0)
+        ).toFixed(2);
+
+
+      month.totalWithoutTax =
+        +(
+          month.totalWithoutTax +
+          Number(row.totalWithoutTax || 0)
+        ).toFixed(2);
+
+    };
+
+
+  /*
+   * Add filtered sales
+   */
+
+  sales.forEach(s => {
+
+    addToMonth(
+      s.monthKey,
+      'sales',
+      s
+    );
+
+  });
+
+
+  /*
+   * Add filtered purchases
+   */
+
+  purchases.forEach(p => {
+
+    addToMonth(
+      p.monthKey,
+      'purchases',
+      p
+    );
+
+  });
+
+
+  const monthlySummary =
+    Object.values(monthMap)
+      .sort((a, b) =>
+        b.month.localeCompare(a.month)
+      );
+
+
+  /*
+   * ============================================================
+   * AVAILABLE YEARS
+   * ============================================================
+   *
+   * Keep this independent from the current filters so the
+   * dropdown always knows which years exist.
+   */
+
+  const yearsFromSales =
+    db
+      .prepare(`
+        SELECT DISTINCT
+          substr(billDate, 1, 4) AS y
+        FROM bills
+        WHERE billDate IS NOT NULL
+      `)
+      .all()
+      .map(r => r.y);
+
+
+  const yearsFromPurchases =
+    db
+      .prepare(`
+        SELECT DISTINCT
+          substr(invoiceDate, 1, 4) AS y
+        FROM purchases
+        WHERE invoiceDate IS NOT NULL
+      `)
+      .all()
+      .map(r => r.y);
+
+
+  const availableYears =
+    [
+      ...new Set([
+        ...yearsFromSales,
+        ...yearsFromPurchases
+      ])
+    ]
+      .filter(Boolean)
+      .sort()
+      .reverse();
+
+
+  /*
+   * ============================================================
+   * SUPPLIER LIST
+   * ============================================================
+   *
+   * This is what Angular will use for:
+   *
+   * Supplier Details dropdown
+   *
+   * Bills:
+   *   supplierName
+   *
+   * Purchases:
+   *   name
+   *
+   * Duplicate supplier names are removed.
+   */
+
+  const suppliersFromBills =
+    db
+      .prepare(`
+        SELECT DISTINCT
+          TRIM(supplierName) AS name
+        FROM bills
+        WHERE supplierName IS NOT NULL
+          AND TRIM(supplierName) != ''
+      `)
+      .all()
+      .map(r => r.name);
+
+
+  const suppliersFromPurchases =
+    db
+      .prepare(`
+        SELECT DISTINCT
+          TRIM(name) AS name
+        FROM purchases
+        WHERE name IS NOT NULL
+          AND TRIM(name) != ''
+      `)
+      .all()
+      .map(r => r.name);
+
+
+  const suppliers =
+    [
+      ...new Set([
+        ...suppliersFromBills,
+        ...suppliersFromPurchases
+      ])
+    ]
+      .sort((a, b) =>
+        a.localeCompare(b)
+      );
+
+
+  /*
+   * ============================================================
+   * RESPONSE
+   * ============================================================
+   */
+
+  res.json({
+
+    sales,
+
+    purchases,
+
+    monthlySummary,
+
+    availableYears,
+
+    suppliers,
+
+    filters: {
+      year: year || '',
+      month: month || '',
+      supplier: selectedSupplier,
+      fromDate: selectedFromDate,
+      toDate: selectedToDate,
+      proforma: proformaFilter
+    }
+
+  });
+
 });
+
 
 // Seed some purchases if empty
 const pCount = db.prepare('SELECT COUNT(*) as cnt FROM purchases').get().cnt;

@@ -371,32 +371,31 @@ app.delete('/api/purchases/:id', (req, res) => {
 
 // ===== Report API =====
 app.get('/api/report', (req, res) => {
+
   const {
     year,
     month,
     supplier,
     fromDate,
     toDate,
-    proforma,
-    quotation
+    excludeProforma,
+    excludeQuotation
   } = req.query;
 
-  const selectedSupplier =
-    supplier ? String(supplier).trim() : '';
 
-  const selectedFromDate =
-    fromDate ? String(fromDate).trim() : '';
+  // ============================================================
+  // HELPER
+  // ============================================================
 
-  const selectedToDate =
-    toDate ? String(toDate).trim() : '';
+  const isTrue = (value) =>
+    String(value).toLowerCase() === 'true';
 
-  // Default: exclude Proforma
-  const excludeProforma =
-    proforma === 'exclude';
 
-  // Default: exclude Quotations
-  const excludeQuotation =
-    quotation === 'exclude';
+  const shouldExcludeProforma =
+    isTrue(excludeProforma);
+
+  const shouldExcludeQuotation =
+    isTrue(excludeQuotation);
 
 
   // ============================================================
@@ -405,42 +404,52 @@ app.get('/api/report', (req, res) => {
 
   let salesQuery = `
     SELECT
-      billNumber AS invoiceNo,
-      billDate AS invoiceDate,
+      billNumber as invoiceNo,
+      billDate as invoiceDate,
 
-      supplierName AS name,
-      supplierGstNo AS gstNo,
+      supplierName as name,
+      supplierGstNo as gstNo,
 
-      buyerName AS buyerName,
-      buyerGstNo AS buyerGstNo,
+      buyerName,
+      buyerGstNo,
 
-      totalAmount AS taxableAmount,
+      totalAmount as taxableAmount,
       totalGst,
-      grandTotal AS totalWithTax,
-      totalAmount AS totalWithoutTax,
+      grandTotal as totalWithTax,
+      totalAmount as totalWithoutTax,
 
-      substr(billDate, 1, 7) AS monthKey
+      substr(billDate, 1, 7) as monthKey
 
     FROM bills
 
-    WHERE 1 = 1
+    WHERE 1=1
   `;
+
 
   const salesParams = [];
 
 
-  // Year
+  // ============================================================
+  // YEAR
+  // ============================================================
+
   if (year) {
+
     salesQuery += `
       AND substr(billDate, 1, 4) = ?
     `;
 
-    salesParams.push(String(year));
+    salesParams.push(year);
+
   }
 
 
-  // Month
+  // ============================================================
+  // MONTH
+  // ============================================================
+
   if (month) {
+
     salesQuery += `
       AND substr(billDate, 6, 2) = ?
     `;
@@ -448,61 +457,89 @@ app.get('/api/report', (req, res) => {
     salesParams.push(
       String(month).padStart(2, '0')
     );
+
   }
 
 
-  // Supplier
-  if (selectedSupplier) {
+  // ============================================================
+  // DATE RANGE
+  // ============================================================
+
+  if (fromDate) {
+
     salesQuery += `
-      AND LOWER(TRIM(COALESCE(supplierName, '')))
-          = LOWER(TRIM(?))
+      AND billDate >= ?
     `;
 
-    salesParams.push(selectedSupplier);
+    salesParams.push(fromDate);
+
   }
 
 
-  // From date
-  if (selectedFromDate) {
+  if (toDate) {
+
     salesQuery += `
-      AND date(billDate) >= date(?)
+      AND billDate <= ?
     `;
 
-    salesParams.push(selectedFromDate);
+    salesParams.push(toDate);
+
   }
 
 
-  // To date
-  if (selectedToDate) {
+  // ============================================================
+  // SUPPLIER
+  // ============================================================
+
+  if (supplier) {
+
     salesQuery += `
-      AND date(billDate) <= date(?)
+      AND supplierName = ?
     `;
 
-    salesParams.push(selectedToDate);
+    salesParams.push(supplier);
+
   }
 
 
   // ============================================================
   // EXCLUDE PROFORMA
+  //
+  // Examples:
+  // PROFARMA-20260830-9587
+  // PROFORMA-20260830-123
+  //
+  // Case insensitive
   // ============================================================
 
-  if (excludeProforma) {
+  if (shouldExcludeProforma) {
+
     salesQuery += `
       AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFARMA%'
       AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFORMA%'
     `;
+
   }
 
 
   // ============================================================
-  // EXCLUDE QUOTATIONS
+  // EXCLUDE QUOTATION
+  //
+  // Examples:
+  // BILL-QUOTATION1
+  // QUOTATION-20260830-001
+  // QUOTATIONS-001
+  //
+  // Case insensitive
   // ============================================================
 
-  if (excludeQuotation) {
+  if (shouldExcludeQuotation) {
+
     salesQuery += `
       AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%QUOTATION%'
       AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%QUOTATIONS%'
     `;
+
   }
 
 
@@ -516,19 +553,19 @@ app.get('/api/report', (req, res) => {
 
 
   // ============================================================
-  // SALES CGST / SGST
+  // CGST / SGST
   // ============================================================
 
   sales.forEach(s => {
 
-    const totalGst =
+    const gst =
       Number(s.totalGst || 0);
 
     s.cgst =
-      +(totalGst / 2).toFixed(2);
+      +(gst / 2).toFixed(2);
 
     s.sgst =
-      +(totalGst / 2).toFixed(2);
+      +(gst / 2).toFixed(2);
 
   });
 
@@ -541,36 +578,48 @@ app.get('/api/report', (req, res) => {
     SELECT
       invoiceNo,
       invoiceDate,
+
       name,
       gstNo,
+
       taxableAmount,
       cgst,
       sgst,
       totalWithTax,
       totalWithoutTax,
 
-      substr(invoiceDate, 1, 7) AS monthKey
+      substr(invoiceDate, 1, 7) as monthKey
 
     FROM purchases
 
-    WHERE 1 = 1
+    WHERE 1=1
   `;
+
 
   const purchaseParams = [];
 
 
-  // Year
+  // ============================================================
+  // PURCHASE YEAR
+  // ============================================================
+
   if (year) {
+
     purchaseQuery += `
       AND substr(invoiceDate, 1, 4) = ?
     `;
 
-    purchaseParams.push(String(year));
+    purchaseParams.push(year);
+
   }
 
 
-  // Month
+  // ============================================================
+  // PURCHASE MONTH
+  // ============================================================
+
   if (month) {
+
     purchaseQuery += `
       AND substr(invoiceDate, 6, 2) = ?
     `;
@@ -578,55 +627,76 @@ app.get('/api/report', (req, res) => {
     purchaseParams.push(
       String(month).padStart(2, '0')
     );
+
   }
 
 
-  // Supplier
-  if (selectedSupplier) {
+  // ============================================================
+  // PURCHASE DATE RANGE
+  // ============================================================
+
+  if (fromDate) {
+
     purchaseQuery += `
-      AND LOWER(TRIM(COALESCE(name, '')))
-          = LOWER(TRIM(?))
+      AND invoiceDate >= ?
     `;
 
-    purchaseParams.push(selectedSupplier);
+    purchaseParams.push(fromDate);
+
   }
 
 
-  // From date
-  if (selectedFromDate) {
+  if (toDate) {
+
     purchaseQuery += `
-      AND date(invoiceDate) >= date(?)
+      AND invoiceDate <= ?
     `;
 
-    purchaseParams.push(selectedFromDate);
+    purchaseParams.push(toDate);
+
   }
 
 
-  // To date
-  if (selectedToDate) {
+  // ============================================================
+  // PURCHASE SUPPLIER
+  // ============================================================
+
+  if (supplier) {
+
     purchaseQuery += `
-      AND date(invoiceDate) <= date(?)
+      AND name = ?
     `;
 
-    purchaseParams.push(selectedToDate);
+    purchaseParams.push(supplier);
+
   }
 
 
-  // Exclude Proforma
-  if (excludeProforma) {
+  // ============================================================
+  // PURCHASE PROFORMA
+  // ============================================================
+
+  if (shouldExcludeProforma) {
+
     purchaseQuery += `
       AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFARMA%'
       AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFORMA%'
     `;
+
   }
 
 
-  // Exclude Quotations
-  if (excludeQuotation) {
+  // ============================================================
+  // PURCHASE QUOTATION
+  // ============================================================
+
+  if (shouldExcludeQuotation) {
+
     purchaseQuery += `
       AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%QUOTATION%'
       AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%QUOTATIONS%'
     `;
+
   }
 
 
@@ -645,11 +715,17 @@ app.get('/api/report', (req, res) => {
 
   const monthMap = {};
 
-  const createMonth = (key) => {
+
+  const addToMonth = (
+    key,
+    type,
+    row
+  ) => {
 
     if (!monthMap[key]) {
 
       monthMap[key] = {
+
         month: key,
 
         sales: {
@@ -667,69 +743,65 @@ app.get('/api/report', (req, res) => {
           totalWithTax: 0,
           totalWithoutTax: 0
         }
+
       };
 
     }
 
-    return monthMap[key];
+
+    const m =
+      monthMap[key][type];
+
+
+    m.count++;
+
+
+    m.cgst =
+      +(
+        m.cgst +
+        Number(row.cgst || 0)
+      ).toFixed(2);
+
+
+    m.sgst =
+      +(
+        m.sgst +
+        Number(row.sgst || 0)
+      ).toFixed(2);
+
+
+    m.totalWithTax =
+      +(
+        m.totalWithTax +
+        Number(row.totalWithTax || 0)
+      ).toFixed(2);
+
+
+    m.totalWithoutTax =
+      +(
+        m.totalWithoutTax +
+        Number(row.totalWithoutTax || 0)
+      ).toFixed(2);
+
   };
 
 
-  const addToMonth =
-    (key, type, row) => {
-
-      if (!key) {
-        return;
-      }
-
-      const month =
-        createMonth(key)[type];
-
-      month.count++;
-
-      month.cgst =
-        +(
-          month.cgst +
-          Number(row.cgst || 0)
-        ).toFixed(2);
-
-      month.sgst =
-        +(
-          month.sgst +
-          Number(row.sgst || 0)
-        ).toFixed(2);
-
-      month.totalWithTax =
-        +(
-          month.totalWithTax +
-          Number(row.totalWithTax || 0)
-        ).toFixed(2);
-
-      month.totalWithoutTax =
-        +(
-          month.totalWithoutTax +
-          Number(row.totalWithoutTax || 0)
-        ).toFixed(2);
-
-    };
-
-
-  sales.forEach(s => {
+  sales.forEach(s =>
     addToMonth(
       s.monthKey,
       'sales',
       s
-    );
-  });
+    )
+  );
 
 
-  purchases.forEach(p => {
+  purchases.forEach(p =>
     addToMonth(
       p.monthKey,
       'purchases',
       p
-    );
-  });
+    )
+  );
 
 
   const monthlySummary =
@@ -740,31 +812,67 @@ app.get('/api/report', (req, res) => {
 
 
   // ============================================================
+  // SUPPLIER LIST
+  //
+  // Get supplier names from both bills and purchases.
+  // ============================================================
+
+  const billSuppliers =
+    db.prepare(`
+      SELECT DISTINCT supplierName as supplier
+      FROM bills
+      WHERE supplierName IS NOT NULL
+        AND TRIM(supplierName) != ''
+    `)
+    .all()
+    .map(r => r.supplier);
+
+
+  const purchaseSuppliers =
+    db.prepare(`
+      SELECT DISTINCT name as supplier
+      FROM purchases
+      WHERE name IS NOT NULL
+        AND TRIM(name) != ''
+    `)
+    .all()
+    .map(r => r.supplier);
+
+
+  const suppliers =
+    [...new Set([
+      ...billSuppliers,
+      ...purchaseSuppliers
+    ])]
+      .sort((a, b) =>
+        a.localeCompare(b)
+      );
+
+
+  // ============================================================
   // AVAILABLE YEARS
   // ============================================================
 
   const yearsFromSales =
-    db
-      .prepare(`
-        SELECT DISTINCT
-          substr(billDate, 1, 4) AS y
-        FROM bills
-        WHERE billDate IS NOT NULL
-      `)
-      .all()
-      .map(r => r.y);
+    db.prepare(`
+      SELECT DISTINCT
+        substr(billDate, 1, 4) as y
+      FROM bills
+      WHERE billDate IS NOT NULL
+    `)
+    .all()
+    .map(r => r.y);
 
 
   const yearsFromPurchases =
-    db
-      .prepare(`
-        SELECT DISTINCT
-          substr(invoiceDate, 1, 4) AS y
-        FROM purchases
-        WHERE invoiceDate IS NOT NULL
-      `)
-      .all()
-      .map(r => r.y);
+    db.prepare(`
+      SELECT DISTINCT
+        substr(invoiceDate, 1, 4) as y
+      FROM purchases
+      WHERE invoiceDate IS NOT NULL
+    `)
+    .all()
+    .map(r => r.y);
 
 
   const availableYears =
@@ -777,48 +885,6 @@ app.get('/api/report', (req, res) => {
       .filter(Boolean)
       .sort()
       .reverse();
-
-
-  // ============================================================
-  // SUPPLIERS
-  // ============================================================
-
-  const suppliersFromBills =
-    db
-      .prepare(`
-        SELECT DISTINCT
-          TRIM(supplierName) AS name
-        FROM bills
-        WHERE supplierName IS NOT NULL
-          AND TRIM(supplierName) != ''
-      `)
-      .all()
-      .map(r => r.name);
-
-
-  const suppliersFromPurchases =
-    db
-      .prepare(`
-        SELECT DISTINCT
-          TRIM(name) AS name
-        FROM purchases
-        WHERE name IS NOT NULL
-          AND TRIM(name) != ''
-      `)
-      .all()
-      .map(r => r.name);
-
-
-  const suppliers =
-    [
-      ...new Set([
-        ...suppliersFromBills,
-        ...suppliersFromPurchases
-      ])
-    ]
-      .sort((a, b) =>
-        a.localeCompare(b)
-      );
 
 
   // ============================================================
@@ -835,29 +901,12 @@ app.get('/api/report', (req, res) => {
 
     availableYears,
 
-    suppliers,
-
-    filters: {
-      year: year || '',
-      month: month || '',
-      supplier: selectedSupplier,
-      fromDate: selectedFromDate,
-      toDate: selectedToDate,
-
-      proforma:
-        excludeProforma
-          ? 'exclude'
-          : 'include',
-
-      quotation:
-        excludeQuotation
-          ? 'exclude'
-          : 'include'
-    }
+    suppliers
 
   });
 
 });
+
 
 
 

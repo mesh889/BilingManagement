@@ -329,6 +329,7 @@ $row-h: 16px;
   .no-print { display: none !important; }
 
   .letterhead { display: none !important; }
+
   .letterhead-spacer {
     display: block !important;
     height: 40mm;
@@ -348,6 +349,65 @@ $row-h: 16px;
     margin: 3mm;
   }
 
+  // ==============================
+  // PRINT FONT SIZE ONLY
+  // ==============================
+
+  .items-table th,
+  .items-table td {
+    font-size: 8.5px;
+  }
+
+  .items-table thead th {
+    font-size: 8px;
+  }
+
+  .items-table .total-row td {
+    font-size: 9px;
+  }
+
+  .gst-table th,
+  .gst-table td {
+    font-size: 8px;
+  }
+
+  .gst-table thead th {
+    font-size: 7.5px;
+  }
+
+  .words-section {
+    font-size: 8.5px;
+  }
+
+  .words-value {
+    font-size: 9px;
+  }
+
+  .small-words {
+    font-size: 8.5px;
+  }
+
+  .bank-details,
+  .bank-table {
+    font-size: 9px;
+  }
+
+  .totals-table {
+    font-size: 9px;
+  }
+
+  .totals-table .grand-total-row td {
+    font-size: 10px;
+  }
+
+  .declaration {
+    font-size: 7.5px;
+  }
+
+  .invoice-footer {
+    font-size: 7.5px;
+  }
+
   .items-table,
   .gst-table,
   .bottom-section,
@@ -356,3 +416,4 @@ $row-h: 16px;
     page-break-inside: avoid;
   }
 }
+

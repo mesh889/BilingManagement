@@ -291,8 +291,11 @@
         </tr>
         <tr class="grand-total-row">
           <td><strong>Grand Total</strong></td>
-          <td class="text-right"><strong>₹ {{ grandTotal | number:'1.2-2' }}</strong></td>
+          <td class="text-right">
+            <strong>₹ {{ grandTotal | number:'1.0-0' }}</strong>
+          </td>
         </tr>
+
       </table>
       <div class="signature-block">
         <div class="sig-company">For {{ bill.supplier.name }}</div>

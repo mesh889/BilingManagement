@@ -19,6 +19,7 @@ export class BillListComponent implements OnInit {
   onDocumentClick(event: MouseEvent) {}
 
   bills: Bill[] = [];
+  billSearch = '';
   buyerFilter = '';
   dateFrom = '';
   dateTo = '';
@@ -73,14 +74,69 @@ export class BillListComponent implements OnInit {
   }
 
   get filteredBills(): Bill[] {
+    const search = this.billSearch.trim().toLowerCase();
+
     return this.bills.filter(b => {
-      const matchBuyer = !this.buyerFilter || b.buyer.name.toLowerCase().includes(this.buyerFilter.toLowerCase());
-      const matchSupplier = this.selectedSuppliers.size === 0 || this.selectedSuppliers.has(b.supplier.name);
-      const matchDateFrom = !this.dateFrom || b.billDate >= this.dateFrom;
-      const matchDateTo = !this.dateTo || b.billDate <= this.dateTo;
-      return matchBuyer && matchSupplier && matchDateFrom && matchDateTo;
+
+      // Global bill search
+      const matchSearch =
+        !search ||
+        [
+          b.billNumber,
+          b.billDate,
+          b.buyer?.name,
+          b.buyer?.gstNo,
+          b.supplier?.name,
+          b.supplier?.gstNo,
+
+          // Search inside bill items
+          ...(b.items || []).flatMap(i => [
+            i.description,
+            i.hsnSac,
+            i.unit,
+            i.quantity,
+            i.rate,
+            i.discount,
+            i.cgstPercent,
+            i.sgstPercent,
+            i.amount
+          ])
+        ]
+          .filter(v => v !== null && v !== undefined)
+          .some(v =>
+            String(v).toLowerCase().includes(search)
+          );
+
+      // Buyer filter
+      const matchBuyer =
+        !this.buyerFilter ||
+        b.buyer.name
+          .toLowerCase()
+          .includes(this.buyerFilter.toLowerCase());
+
+      // Supplier filter
+      const matchSupplier =
+        this.selectedSuppliers.size === 0 ||
+        this.selectedSuppliers.has(b.supplier.name);
+
+      // Date From
+      const matchDateFrom =
+        !this.dateFrom || b.billDate >= this.dateFrom;
+
+      // Date To
+      const matchDateTo =
+        !this.dateTo || b.billDate <= this.dateTo;
+
+      return (
+        matchSearch &&
+        matchBuyer &&
+        matchSupplier &&
+        matchDateFrom &&
+        matchDateTo
+      );
     });
   }
+
 
   // === Pagination ===
   get totalPages(): number { return Math.ceil(this.filteredBills.length / this.pageSize) || 1; }
@@ -104,12 +160,15 @@ export class BillListComponent implements OnInit {
   onFilterChange() { this.currentPage = 1; }
 
   clearFilters() {
+    this.billSearch = '';
     this.buyerFilter = '';
     this.selectedSuppliers.clear();
     this.dateFrom = '';
     this.dateTo = '';
     this.currentPage = 1;
   }
+
+
 
   get totalValue(): number { return this.filteredBills.reduce((sum, b) => sum + b.grandTotal, 0); }
 

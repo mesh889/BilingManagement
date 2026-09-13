@@ -134,4 +134,8 @@ export class BillViewComponent implements OnInit {
 
   return +taxableAmount.toFixed(2);
 }
+get roundedGrandTotal(): number {
+  return Math.round(this.grandTotal);
+}
+
 }

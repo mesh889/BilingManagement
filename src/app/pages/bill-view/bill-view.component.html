@@ -66,51 +66,141 @@
   </table>
 
   <!-- Items Table -->
-  <table class="items-table">
-    <thead>
+<!-- Items Table -->
+<table class="items-table">
+  <thead>
+    <tr>
+      <th class="col-sr">Sr</th>
+      <th class="col-desc">Description of Goods / Services</th>
+      <th class="col-hsn">HSN/SAC</th>
+      <th class="col-unit">Unit</th>
+      <th class="col-qty">Qty</th>
+      <th class="col-rate">Rate (₹)</th>
+      <th class="col-disc">Disc%</th>
+      <th class="col-taxable">Taxable (₹)</th>
+      <th class="col-cgst">CGST%</th>
+      <th class="col-sgst">SGST%</th>
+      <th class="col-amt">Amount (₹)</th>
+    </tr>
+  </thead>
+
+  <tbody>
+
+    @for (item of filledItems; track item.srNo; let i = $index) {
       <tr>
-        <th class="col-sr">Sr</th>
-        <th class="col-desc">Description of Goods / Services</th>
-        <th class="col-hsn">HSN/SAC</th>
-        <th class="col-unit">Unit</th>
-        <th class="col-qty">Qty</th>
-        <th class="col-rate">Rate (₹)</th>
-        <th class="col-disc">Disc%</th>
-        <th class="col-cgst">CGST%</th>
-        <th class="col-sgst">SGST%</th>
-        <th class="col-amt">Amount (₹)</th>
+
+        <!-- Sr -->
+        <td class="text-center">
+          {{ i + 1 }}
+        </td>
+
+        <!-- Description -->
+        <td>
+          {{ item.description }}
+        </td>
+
+        <!-- HSN/SAC -->
+        <td class="text-center">
+          {{ item.hsnSac }}
+        </td>
+
+        <!-- Unit -->
+        <td class="text-center">
+          {{ item.unit }}
+        </td>
+
+        <!-- Qty -->
+        <td class="text-right">
+          {{ item.quantity }}
+        </td>
+
+        <!-- Rate -->
+        <td class="text-right">
+          {{ item.rate | number:'1.2-2' }}
+        </td>
+
+        <!-- Discount -->
+        <td class="text-center">
+          {{ item.discount || 0 }}
+        </td>
+
+        <!-- Taxable Amount -->
+        <td class="text-right">
+          {{ getItemTaxableAmount(item) | number:'1.2-2' }}
+        </td>
+
+        <!-- CGST -->
+        <td class="text-center">
+          {{ item.cgstPercent || 0 }}
+        </td>
+
+        <!-- SGST -->
+        <td class="text-center">
+          {{ item.sgstPercent || 0 }}
+        </td>
+
+        <!-- Final Amount -->
+        <td class="text-right">
+          {{ item.amount | number:'1.2-2' }}
+        </td>
+
       </tr>
-    </thead>
-    <tbody>
-      @for (item of filledItems; track item.srNo; let i = $index) {
-        <tr>
-          <td class="text-center">{{ i + 1 }}</td>
-          <td>{{ item.description }}</td>
-          <td class="text-center">{{ item.hsnSac }}</td>
-          <td class="text-center">{{ item.unit }}</td>
-          <td class="text-right">{{ item.quantity }}</td>
-          <td class="text-right">{{ item.rate | number:'1.2-2' }}</td>
-          <td class="text-center">{{ item.discount || 0 }}</td>
-          <td class="text-center">{{ item.cgstPercent || 0 }}</td>
-          <td class="text-center">{{ item.sgstPercent || 0 }}</td>
-          <td class="text-right">{{ item.amount | number:'1.2-2' }}</td>
-        </tr>
-      }
-      @for (e of emptyRows; track $index) {
-        <tr class="empty-row">
-          <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-      }
-    </tbody>
-    <tfoot>
-      <tr class="total-row">
-        <td colspan="4" class="text-right"><strong>Total</strong></td>
-        <td class="text-center"><strong>{{ totalUnits }}</strong></td>
-        <td colspan="4"></td>
-        <td class="text-right"><strong>{{ totalItemsAmount | number:'1.2-2' }}</strong></td>
+    }
+
+    @for (e of emptyRows; track $index) {
+      <tr class="empty-row">
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
       </tr>
-    </tfoot>
-  </table>
+    }
+
+  </tbody>
+
+  <tfoot>
+
+    <tr class="total-row">
+
+      <td colspan="4" class="text-right">
+        <strong>Total</strong>
+      </td>
+
+      <td class="text-center">
+        <strong>{{ totalUnits }}</strong>
+      </td>
+
+      <td colspan="2"></td>
+
+      <!-- Total Taxable Amount -->
+      <td class="text-right">
+        <strong>
+          {{ totalTaxableAmount | number:'1.2-2' }}
+        </strong>
+      </td>
+
+      <td colspan="2"></td>
+
+      <!-- Total Final Amount -->
+      <td class="text-right">
+        <strong>
+          {{ totalItemsAmount | number:'1.2-2' }}
+        </strong>
+      </td>
+
+    </tr>
+
+  </tfoot>
+
+</table>
+
 
   <!-- Amount in Words -->
   <div class="words-section">

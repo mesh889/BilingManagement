@@ -137,84 +137,201 @@
   </div>
 </div>
 
+ 
 <!-- ========== ITEMS TABLE ========== -->
 <div class="card mb-4">
   <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
     <span><i class="bi bi-table me-2"></i>Bill Items</span>
-    <span class="badge bg-light text-dark">{{ filledItems.length }} of {{ items.length }} rows filled</span>
+    <span class="badge bg-light text-dark">
+      {{ filledItems.length }} of {{ items.length }} rows filled
+    </span>
   </div>
+
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-bordered table-sm mb-0 items-table">
+
         <thead class="table-light">
           <tr class="text-center">
             <th style="width:50px">Sr No</th>
+
             <th style="min-width:200px">Description</th>
+
             <th style="width:110px">HSN/SAC</th>
+
             <th style="width:80px">Unit</th>
+
             <th style="width:80px">Qty</th>
+
             <th style="width:100px">Rate (&#8377;)</th>
+
             <th style="width:80px">Disc %</th>
+
+            <th style="width:110px">
+              Taxable Amount (&#8377;)
+            </th>
+
             <th style="width:80px">CGST %</th>
+
             <th style="width:80px">SGST %</th>
+
             <th style="width:120px">Amount (&#8377;)</th>
           </tr>
         </thead>
+
         <tbody>
           @for (item of items; track item.srNo) {
+
             <tr [class.table-success]="item.description && item.quantity && item.rate">
-              <td class="text-center text-muted fw-semibold">{{ item.srNo }}</td>
-              <td>
-                <input type="text" class="form-control form-control-sm border-0 bg-transparent"
-                       placeholder="Enter description" [(ngModel)]="item.description">
+
+              <!-- Sr No -->
+              <td class="text-center text-muted fw-semibold">
+                {{ item.srNo }}
               </td>
+
+              <!-- Description -->
               <td>
-                <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center"
-                       placeholder="HSN/SAC" [(ngModel)]="item.hsnSac">
+                <input
+                  type="text"
+                  class="form-control form-control-sm border-0 bg-transparent"
+                  placeholder="Enter description"
+                  [(ngModel)]="item.description">
               </td>
+
+              <!-- HSN/SAC -->
               <td>
-                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
-                       placeholder="0" [(ngModel)]="item.unit" min="0">
+                <input
+                  type="text"
+                  class="form-control form-control-sm border-0 bg-transparent text-center"
+                  placeholder="HSN/SAC"
+                  [(ngModel)]="item.hsnSac">
               </td>
+
+              <!-- Unit -->
               <td>
-                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
-                       placeholder="0" [(ngModel)]="item.quantity" (ngModelChange)="calcAmount(item)" min="0">
+                <input
+                  type="number"
+                  class="form-control form-control-sm border-0 bg-transparent text-center"
+                  placeholder="0"
+                  [(ngModel)]="item.unit"
+                  min="0">
               </td>
+
+              <!-- Quantity -->
               <td>
-                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-end"
-                       placeholder="0.00" [(ngModel)]="item.rate" (ngModelChange)="calcAmount(item)" min="0">
+                <input
+                  type="number"
+                  class="form-control form-control-sm border-0 bg-transparent text-center"
+                  placeholder="0"
+                  [(ngModel)]="item.quantity"
+                  (ngModelChange)="calcAmount(item)"
+                  min="0">
               </td>
+
+              <!-- Rate -->
               <td>
-                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
-                       placeholder="0" [(ngModel)]="item.discount" (ngModelChange)="calcAmount(item)" min="0" max="100">
+                <input
+                  type="number"
+                  class="form-control form-control-sm border-0 bg-transparent text-end"
+                  placeholder="0.00"
+                  [(ngModel)]="item.rate"
+                  (ngModelChange)="calcAmount(item)"
+                  min="0">
               </td>
+
+              <!-- Discount -->
               <td>
-                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
-                       placeholder="0" [(ngModel)]="item.cgstPercent" (ngModelChange)="calcAmount(item)" min="0">
+                <input
+                  type="number"
+                  class="form-control form-control-sm border-0 bg-transparent text-center"
+                  placeholder="0"
+                  [(ngModel)]="item.discount"
+                  (ngModelChange)="calcAmount(item)"
+                  min="0"
+                  max="100">
               </td>
+
+              <!-- TAXABLE AMOUNT -->
+              <td class="text-end fw-semibold pe-3">
+                @if (item.quantity && item.rate) {
+                  &#8377;
+                  {{ getItemTaxableAmount(item) | number:'1.2-2' }}
+                } @else {
+                  0.00
+                }
+              </td>
+
+              <!-- CGST -->
               <td>
-                <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
-                       placeholder="0" [(ngModel)]="item.sgstPercent" (ngModelChange)="calcAmount(item)" min="0">
+                <input
+                  type="number"
+                  class="form-control form-control-sm border-0 bg-transparent text-center"
+                  placeholder="0"
+                  [(ngModel)]="item.cgstPercent"
+                  (ngModelChange)="calcAmount(item)"
+                  min="0">
               </td>
-              <td class="text-end fw-semibold pe-3"
-                  [class.text-success]="item.amount > 0">
+
+              <!-- SGST -->
+              <td>
+                <input
+                  type="number"
+                  class="form-control form-control-sm border-0 bg-transparent text-center"
+                  placeholder="0"
+                  [(ngModel)]="item.sgstPercent"
+                  (ngModelChange)="calcAmount(item)"
+                  min="0">
+              </td>
+
+              <!-- FINAL AMOUNT -->
+              <td
+                class="text-end fw-bold pe-3"
+                [class.text-success]="item.amount > 0">
+
+                &#8377;
                 {{ item.amount | number:'1.2-2' }}
+
               </td>
+
             </tr>
           }
         </tbody>
+
         <tfoot class="table-dark">
           <tr>
-            <td colspan="3" class="text-end fw-bold pe-3">Total:</td>
-            <td class="text-center fw-bold">{{ totalUnits }}</td>
-            <td colspan="5"></td>
-            <td class="text-end fw-bold pe-3">&#8377; {{ totalItemsAmount | number:'1.2-2' }}</td>
+
+            <td colspan="3" class="text-end fw-bold pe-3">
+              Total:
+            </td>
+
+            <td class="text-center fw-bold">
+              {{ totalUnits }}
+            </td>
+
+            <td colspan="3"></td>
+
+            <!-- TOTAL TAXABLE -->
+            <td class="text-end fw-bold pe-3">
+              &#8377;
+              {{ totalTaxableAmount | number:'1.2-2' }}
+            </td>
+
+            <td colspan="2"></td>
+
+            <!-- GRAND ITEM TOTAL -->
+            <td class="text-end fw-bold pe-3">
+              &#8377;
+              {{ totalItemsAmount | number:'1.2-2' }}
+            </td>
+
           </tr>
         </tfoot>
+
       </table>
     </div>
   </div>
 </div>
+
 
 <!-- ========== AMOUNT IN WORDS ========== -->
 @if (filledItems.length > 0) {

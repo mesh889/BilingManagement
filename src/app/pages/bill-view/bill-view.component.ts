@@ -122,4 +122,16 @@ export class BillViewComponent implements OnInit {
   printBill() {
     window.print();
   }
+  getItemTaxableAmount(item: BillItem): number {
+  const qty = item.quantity || 0;
+  const rate = item.rate || 0;
+  const discount = item.discount || 0;
+
+  const base = qty * rate;
+
+  const taxableAmount =
+    base - (base * discount) / 100;
+
+  return +taxableAmount.toFixed(2);
+}
 }

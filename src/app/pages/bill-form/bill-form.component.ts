@@ -166,7 +166,18 @@ export class BillFormComponent implements OnInit {
     const sgst = (afterDisc * (item.sgstPercent || 0)) / 100;
     item.amount = +(afterDisc + cgst + sgst).toFixed(2);
   }
+  getItemTaxableAmount(item: BillItem): number {
+    const qty = item.quantity || 0;
+    const rate = item.rate || 0;
+    const discount = item.discount || 0;
 
+    const base = qty * rate;
+
+    const taxableAmount =
+      base - (base * discount) / 100;
+
+    return +taxableAmount.toFixed(2);
+  }
   get filledItems(): BillItem[] {
     return this.items.filter(i => i.description && i.quantity && i.rate);
   }

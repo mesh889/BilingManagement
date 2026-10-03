@@ -3,6 +3,10 @@ const cors = require('cors');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const { execFileSync } = require('child_process');
+const zlib = require('zlib');
+
+
 
 const app = express();
 app.use(cors());
@@ -15,20 +19,34 @@ if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR);
 
 // ===== Auto Backup Helper =====
 function createAutoBackup(reason) {
-  const billRows = db.prepare('SELECT * FROM bills ORDER BY id').all();
-  const purchaseRows = db.prepare('SELECT * FROM purchases ORDER BY id').all();
-  if (billRows.length === 0 && purchaseRows.length === 0) return null;
+  const bills = db.prepare(
+    'SELECT * FROM bills ORDER BY id'
+  ).all();
+
+  const purchases = db.prepare(
+    'SELECT * FROM purchases ORDER BY id'
+  ).all();
+
+  if (!bills.length && !purchases.length) return null;
+
   const backup = {
     version: '2.0',
     exportedAt: new Date().toISOString(),
     reason: reason || 'manual',
-    totalBills: billRows.length,
-    totalPurchases: purchaseRows.length,
-    bills: billRows.map(buildBill),
-    purchases: purchaseRows,
+    totalBills: bills.length,
+    totalPurchases: purchases.length,
+    bills: bills.map(buildBill),
+    purchases
   };
-  return saveBackupToFolder(backup);
+
+  const saved = saveBackupToFolder(backup);
+
+  gitBackup();
+
+  return saved;
 }
+
+
 
 // ===== SQLite Setup =====
 const dbPath = path.join(__dirname, 'bills.db');
@@ -68,7 +86,7 @@ db.exec(`
     FOREIGN KEY (billId) REFERENCES bills(id) ON DELETE CASCADE
   );
 
-  DROP TABLE IF EXISTS purchases;
+ 
   CREATE TABLE IF NOT EXISTS purchases (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
 
@@ -720,24 +738,21 @@ purchases.forEach(p => {
 
 // ===== Backup Helper =====
 function saveBackupToFolder(backupData) {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = `backup-${timestamp}.json`;
+  const filename = 'latestBackup.json.gz';
   const filepath = path.join(BACKUP_DIR, filename);
-  fs.writeFileSync(filepath, JSON.stringify(backupData, null, 2));
 
-  // Keep only MAX_BACKUPS files, remove oldest
-  const files = fs.readdirSync(BACKUP_DIR)
-    .filter(f => f.endsWith('.json'))
-    .map(f => ({ name: f, time: fs.statSync(path.join(BACKUP_DIR, f)).mtimeMs }))
-    .sort((a, b) => b.time - a.time); // newest first
+  const json = JSON.stringify(backupData);
 
-  if (files.length > MAX_BACKUPS) {
-    files.slice(MAX_BACKUPS).forEach(f => {
-      fs.unlinkSync(path.join(BACKUP_DIR, f.name));
-    });
-  }
+  const compressed = zlib.gzipSync(json, {
+    level: zlib.constants.Z_BEST_COMPRESSION
+  });
+
+  fs.writeFileSync(filepath, compressed);
+
   return { filename, filepath };
 }
+
+
 
 // ===== Backup & Restore APIs =====
 
@@ -897,3 +912,39 @@ app.listen(PORT, () => {
   }
   scheduleDailyBackup();
 });
+function gitBackup() {
+  try {
+    execFileSync(
+      'git',
+      ['add', '--', 'backups/latestBackup.json.gz'],
+      {
+        cwd: __dirname,
+        stdio: 'inherit'
+      }
+    );
+
+    execFileSync(
+      'git',
+      ['commit', '-m', `Backup ${new Date().toISOString()}`],
+      {
+        cwd: __dirname,
+        stdio: 'inherit'
+      }
+    );
+
+    execFileSync(
+      'git',
+      ['push', 'origin', 'main'],
+      {
+        cwd: __dirname,
+        stdio: 'inherit'
+      }
+    );
+
+    console.log('Backup pushed successfully.');
+  } catch (err) {
+    console.error('Git backup failed:', err.message);
+  }
+}
+
+

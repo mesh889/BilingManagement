@@ -1,47 +1,532 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="mb-0 fw-bold"><i class="bi bi-cart-plus me-2"></i>{{ isEdit ? 'Edit' : 'Add' }} Purchase</h4>
-  <a routerLink="/purchases" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
-</div>
+<div class="purchase-form-page">
 
-<div class="card">
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Invoice No <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" [(ngModel)]="form.invoiceNo" placeholder="PUR-001">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Invoice Date <span class="text-danger">*</span></label>
-        <input type="date" class="form-control" [(ngModel)]="form.invoiceDate">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Name <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" [(ngModel)]="form.name" placeholder="Supplier / Vendor name">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">GST No</label>
-        <input type="text" class="form-control" [(ngModel)]="form.gstNo" placeholder="22ABCDE1234F1Z5" maxlength="15" style="text-transform:uppercase;">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Taxable Amount (&#8377;)</label>
-        <input type="number" class="form-control" [(ngModel)]="form.taxableAmount" min="0">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">CGST (&#8377;)</label>
-        <input type="number" class="form-control" [(ngModel)]="form.cgst" min="0">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">SGST (&#8377;)</label>
-        <input type="number" class="form-control" [(ngModel)]="form.sgst" min="0">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small fw-semibold">Total with Tax (&#8377;)</label>
-        <input type="text" class="form-control bg-light fw-bold" [value]="totalWithTax | number:'1.2-2'" readonly>
-      </div>
+  <!-- ===================================================== -->
+  <!-- HEADER -->
+  <!-- ===================================================== -->
+
+  <div class="page-header">
+
+    <div>
+      <h1>
+        {{ isEdit ? 'Edit Purchase' : 'New Purchase' }}
+      </h1>
+
+      <p>
+        {{ isEdit
+          ? 'Update purchase invoice details'
+          : 'Create a new purchase invoice'
+        }}
+      </p>
     </div>
-    <div class="mt-4 d-flex justify-content-end gap-2">
-      <a routerLink="/purchases" class="btn btn-outline-secondary">Cancel</a>
-      <button class="btn btn-success px-4" (click)="save()"><i class="bi bi-check-lg me-1"></i> {{ isEdit ? 'Update' : 'Save' }}</button>
-    </div>
+
+    <a
+      routerLink="/purchases"
+      class="btn btn-secondary"
+    >
+      ← Back to Purchases
+    </a>
+
   </div>
+
+
+  <!-- ===================================================== -->
+  <!-- LOADING -->
+  <!-- ===================================================== -->
+
+  <div
+    class="loading-box"
+    *ngIf="loading"
+  >
+    Loading purchase...
+  </div>
+
+
+  <!-- ===================================================== -->
+  <!-- ERROR -->
+  <!-- ===================================================== -->
+
+  <div
+    class="alert alert-error"
+    *ngIf="errorMessage"
+  >
+    {{ errorMessage }}
+  </div>
+
+
+  <!-- ===================================================== -->
+  <!-- FORM -->
+  <!-- ===================================================== -->
+
+  <form
+    *ngIf="!loading"
+    #purchaseForm="ngForm"
+    (ngSubmit)="save()"
+    novalidate
+  >
+
+    <!-- =================================================== -->
+    <!-- INVOICE DETAILS -->
+    <!-- =================================================== -->
+
+    <section class="form-card">
+
+      <div class="card-title">
+        <h2>Invoice Details</h2>
+      </div>
+
+      <div class="form-grid">
+
+        <!-- Invoice Number -->
+
+        <div class="form-group">
+
+          <label for="invoiceNo">
+            Invoice Number
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="invoiceNo"
+            name="invoiceNo"
+            type="text"
+            [(ngModel)]="invoiceNo"
+            placeholder="Enter invoice number"
+            autocomplete="off"
+            required
+          />
+
+        </div>
+
+
+        <!-- Invoice Date -->
+
+        <div class="form-group">
+
+          <label for="invoiceDate">
+            Invoice Date
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="invoiceDate"
+            name="invoiceDate"
+            type="date"
+            [(ngModel)]="invoiceDate"
+            required
+          />
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =================================================== -->
+    <!-- BUYER / SUPPLIER -->
+    <!-- =================================================== -->
+
+    <div class="party-grid">
+
+      <!-- ================================================= -->
+      <!-- BUYER -->
+      <!-- ================================================= -->
+
+      <section class="form-card">
+
+        <div class="card-title">
+          <h2>Buyer</h2>
+        </div>
+
+        <div class="form-group autocomplete">
+
+          <label for="buyerName">
+            Buyer Name
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="buyerName"
+            name="buyerName"
+            type="text"
+            [(ngModel)]="buyerName"
+            (input)="onBuyerInput()"
+            (focus)="onBuyerInput()"
+            (blur)="hideBuyerSuggestions()"
+            placeholder="Search buyer"
+            autocomplete="off"
+            required
+          />
+
+          <!-- Buyer suggestions -->
+
+          <div
+            class="suggestions"
+            *ngIf="
+              showBuyerSuggestions &&
+              buyerSuggestions.length > 0
+            "
+          >
+
+            <button
+              type="button"
+              class="suggestion"
+              *ngFor="let buyer of buyerSuggestions"
+              (mousedown)="selectBuyer(buyer)"
+            >
+
+              <strong>
+                {{ buyer.name }}
+              </strong>
+
+              <small
+                *ngIf="buyer.gstNo"
+              >
+                GST: {{ buyer.gstNo }}
+              </small>
+
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="buyerGstNo">
+            Buyer GSTIN
+          </label>
+
+          <input
+            id="buyerGstNo"
+            name="buyerGstNo"
+            type="text"
+            [(ngModel)]="buyerGstNo"
+            placeholder="Enter buyer GSTIN"
+            maxlength="15"
+            autocomplete="off"
+          />
+
+        </div>
+
+      </section>
+
+
+      <!-- ================================================= -->
+      <!-- SUPPLIER -->
+      <!-- ================================================= -->
+
+      <section class="form-card">
+
+        <div class="card-title">
+          <h2>Supplier</h2>
+        </div>
+
+        <div class="form-group autocomplete">
+
+          <label for="supplierName">
+            Supplier Name
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="supplierName"
+            name="supplierName"
+            type="text"
+            [(ngModel)]="supplierName"
+            (input)="onSupplierInput()"
+            (focus)="onSupplierInput()"
+            (blur)="hideSupplierSuggestions()"
+            placeholder="Search supplier"
+            autocomplete="off"
+            required
+          />
+
+          <!-- Supplier suggestions -->
+
+          <div
+            class="suggestions"
+            *ngIf="
+              showSupplierSuggestions &&
+              supplierSuggestions.length > 0
+            "
+          >
+
+            <button
+              type="button"
+              class="suggestion"
+              *ngFor="let supplier of supplierSuggestions"
+              (mousedown)="selectSupplier(supplier)"
+            >
+
+              <strong>
+                {{ supplier.name }}
+              </strong>
+
+              <small
+                *ngIf="supplier.gstNo"
+              >
+                GST: {{ supplier.gstNo }}
+              </small>
+
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="supplierGstNo">
+            Supplier GSTIN
+          </label>
+
+          <input
+            id="supplierGstNo"
+            name="supplierGstNo"
+            type="text"
+            [(ngModel)]="supplierGstNo"
+            placeholder="Enter supplier GSTIN"
+            maxlength="15"
+            autocomplete="off"
+          />
+
+        </div>
+
+      </section>
+
+    </div>
+
+
+    <!-- =================================================== -->
+    <!-- AMOUNT DETAILS -->
+    <!-- =================================================== -->
+
+    <section class="form-card">
+
+      <div class="card-title">
+
+        <div>
+          <h2>Tax & Amount Details</h2>
+
+          <p>
+            GST amounts are calculated automatically.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="amount-grid">
+
+        <!-- Taxable Amount -->
+
+        <div class="form-group">
+
+          <label for="taxableAmount">
+            Taxable Amount
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="taxableAmount"
+            name="taxableAmount"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="taxableAmount"
+            (ngModelChange)="calculateTax()"
+            placeholder="0.00"
+            required
+          />
+
+        </div>
+
+
+        <!-- CGST Rate -->
+
+        <div class="form-group">
+
+          <label for="cgstPercent">
+            CGST %
+          </label>
+
+          <input
+            id="cgstPercent"
+            name="cgstPercent"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="cgstPercent"
+            (ngModelChange)="calculateTax()"
+          />
+
+        </div>
+
+
+        <!-- CGST Amount -->
+
+        <div class="form-group">
+
+          <label>
+            CGST Amount
+          </label>
+
+          <div class="calculated-value">
+            ₹ {{ cgstAmount | number:'1.2-2' }}
+          </div>
+
+        </div>
+
+
+        <!-- SGST Rate -->
+
+        <div class="form-group">
+
+          <label for="sgstPercent">
+            SGST %
+          </label>
+
+          <input
+            id="sgstPercent"
+            name="sgstPercent"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="sgstPercent"
+            (ngModelChange)="calculateTax()"
+          />
+
+        </div>
+
+
+        <!-- SGST Amount -->
+
+        <div class="form-group">
+
+          <label>
+            SGST Amount
+          </label>
+
+          <div class="calculated-value">
+            ₹ {{ sgstAmount | number:'1.2-2' }}
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ================================================= -->
+      <!-- TOTALS -->
+      <!-- ================================================= -->
+
+      <div class="totals">
+
+        <div class="total-row">
+
+          <span>
+            Taxable Amount
+          </span>
+
+          <strong>
+            ₹ {{ taxableAmount | number:'1.2-2' }}
+          </strong>
+
+        </div>
+
+
+        <div class="total-row">
+
+          <span>
+            CGST
+          </span>
+
+          <strong>
+            ₹ {{ cgstAmount | number:'1.2-2' }}
+          </strong>
+
+        </div>
+
+
+        <div class="total-row">
+
+          <span>
+            SGST
+          </span>
+
+          <strong>
+            ₹ {{ sgstAmount | number:'1.2-2' }}
+          </strong>
+
+        </div>
+
+
+        <div class="total-row">
+
+          <span>
+            Total GST
+          </span>
+
+          <strong>
+            ₹ {{ totalTax | number:'1.2-2' }}
+          </strong>
+
+        </div>
+
+
+        <div class="total-row grand-total">
+
+          <span>
+            Grand Total
+          </span>
+
+          <strong>
+            ₹ {{ grandTotal | number:'1.2-2' }}
+          </strong>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =================================================== -->
+    <!-- ACTIONS -->
+    <!-- =================================================== -->
+
+    <div class="form-actions">
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="cancel()"
+        [disabled]="saving"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="saving"
+      >
+
+        <span *ngIf="!saving">
+          {{ isEdit ? 'Update Purchase' : 'Save Purchase' }}
+        </span>
+
+        <span *ngIf="saving">
+          Saving...
+        </span>
+
+      </button>
+
+    </div>
+
+  </form>
+
 </div>

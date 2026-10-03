@@ -68,19 +68,32 @@ db.exec(`
     FOREIGN KEY (billId) REFERENCES bills(id) ON DELETE CASCADE
   );
 
+  DROP TABLE IF EXISTS purchases;
   CREATE TABLE IF NOT EXISTS purchases (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    invoiceNo TEXT NOT NULL,
-    invoiceDate TEXT NOT NULL,
-    name TEXT,
-    gstNo TEXT,
-    taxableAmount REAL DEFAULT 0,
-    cgst REAL DEFAULT 0,
-    sgst REAL DEFAULT 0,
-    totalWithTax REAL DEFAULT 0,
-    totalWithoutTax REAL DEFAULT 0,
-    createdAt TEXT DEFAULT (datetime('now'))
-  );
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+  invoiceNo TEXT NOT NULL,
+  invoiceDate TEXT NOT NULL,
+
+  buyerName TEXT,
+  buyerGstNo TEXT,
+
+  supplierName TEXT,
+  supplierGstNo TEXT,
+
+  taxableAmount REAL DEFAULT 0,
+
+  cgstPercent REAL DEFAULT 0,
+  cgstAmount REAL DEFAULT 0,
+
+  sgstPercent REAL DEFAULT 0,
+  sgstAmount REAL DEFAULT 0,
+
+  grandTotal REAL DEFAULT 0,
+
+  createdAt TEXT DEFAULT (datetime('now')),
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // ===== Helper: calc item amount =====
@@ -325,607 +338,385 @@ app.get('/api/query/tables', (req, res) => {
 const PORT = 3000;
 
 // ===== Purchase CRUD APIs =====
+
+// Calculate purchase totals
+function calculatePurchaseTotals(p) {
+  const taxableAmount = +(p.taxableAmount || 0);
+
+  const cgstPercent = +(p.cgstPercent || 0);
+  const sgstPercent = +(p.sgstPercent || 0);
+
+  const cgstAmount = +(
+    taxableAmount * cgstPercent / 100
+  ).toFixed(2);
+
+  const sgstAmount = +(
+    taxableAmount * sgstPercent / 100
+  ).toFixed(2);
+
+  const grandTotal = +(
+    taxableAmount + cgstAmount + sgstAmount
+  ).toFixed(2);
+
+  return {
+    taxableAmount,
+    cgstPercent,
+    cgstAmount,
+    sgstPercent,
+    sgstAmount,
+    grandTotal
+  };
+}
+
+
+// GET all purchases
 app.get('/api/purchases', (req, res) => {
-  res.json(db.prepare('SELECT * FROM purchases ORDER BY id DESC').all());
+  try {
+    const rows = db.prepare(`
+      SELECT *
+      FROM purchases
+      ORDER BY invoiceDate DESC, id DESC
+    `).all();
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to fetch purchases',
+      message: err.message
+    });
+  }
 });
 
+
+// GET purchase by ID
 app.get('/api/purchases/:id', (req, res) => {
-  const row = db.prepare('SELECT * FROM purchases WHERE id = ?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Purchase not found' });
-  res.json(row);
+  try {
+    const row = db.prepare(`
+      SELECT *
+      FROM purchases
+      WHERE id = ?
+    `).get(req.params.id);
+
+    if (!row) {
+      return res.status(404).json({
+        error: 'Purchase not found'
+      });
+    }
+
+    res.json(row);
+
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to fetch purchase',
+      message: err.message
+    });
+  }
 });
 
+
+// CREATE purchase
 app.post('/api/purchases', (req, res) => {
-  const p = req.body;
-  const taxable = +(p.taxableAmount || 0);
-  const cgst = +(p.cgst || 0);
-  const sgst = +(p.sgst || 0);
-  const result = db.prepare(`INSERT INTO purchases (invoiceNo, invoiceDate, name, gstNo, taxableAmount, cgst, sgst, totalWithTax, totalWithoutTax)
-    VALUES (?,?,?,?,?,?,?,?,?)`).run(
-    p.invoiceNo, p.invoiceDate, p.name, p.gstNo, taxable, cgst, sgst,
-    +(taxable + cgst + sgst).toFixed(2), taxable
-  );
-  res.status(201).json(db.prepare('SELECT * FROM purchases WHERE id = ?').get(result.lastInsertRowid));
+  try {
+    const p = req.body;
+
+    if (!p.invoiceNo || !p.invoiceDate) {
+      return res.status(400).json({
+        error: 'Invoice number and invoice date are required'
+      });
+    }
+
+    const totals = calculatePurchaseTotals(p);
+
+    const result = db.prepare(`
+      INSERT INTO purchases (
+        invoiceNo,
+        invoiceDate,
+
+        buyerName,
+        buyerGstNo,
+
+        supplierName,
+        supplierGstNo,
+
+        taxableAmount,
+
+        cgstPercent,
+        cgstAmount,
+
+        sgstPercent,
+        sgstAmount,
+
+        grandTotal
+      )
+      VALUES (
+        ?, ?,
+        ?, ?,
+        ?, ?,
+        ?,
+        ?, ?,
+        ?, ?,
+        ?
+      )
+    `).run(
+      p.invoiceNo,
+      p.invoiceDate,
+
+      p.buyerName || '',
+      p.buyerGstNo || '',
+
+      p.supplierName || '',
+      p.supplierGstNo || '',
+
+      totals.taxableAmount,
+
+      totals.cgstPercent,
+      totals.cgstAmount,
+
+      totals.sgstPercent,
+      totals.sgstAmount,
+
+      totals.grandTotal
+    );
+
+    const purchase = db.prepare(`
+      SELECT *
+      FROM purchases
+      WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    res.status(201).json(purchase);
+
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to create purchase',
+      message: err.message
+    });
+  }
 });
 
+
+// UPDATE purchase
 app.put('/api/purchases/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM purchases WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Purchase not found' });
-  const p = req.body;
-  const taxable = +(p.taxableAmount || 0);
-  const cgst = +(p.cgst || 0);
-  const sgst = +(p.sgst || 0);
-  db.prepare(`UPDATE purchases SET invoiceNo=?, invoiceDate=?, name=?, gstNo=?, taxableAmount=?, cgst=?, sgst=?, totalWithTax=?, totalWithoutTax=? WHERE id=?`).run(
-    p.invoiceNo, p.invoiceDate, p.name, p.gstNo, taxable, cgst, sgst,
-    +(taxable + cgst + sgst).toFixed(2), taxable, req.params.id
-  );
-  res.json(db.prepare('SELECT * FROM purchases WHERE id = ?').get(req.params.id));
+  try {
+    const existing = db.prepare(`
+      SELECT *
+      FROM purchases
+      WHERE id = ?
+    `).get(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        error: 'Purchase not found'
+      });
+    }
+
+    const p = req.body;
+
+    if (!p.invoiceNo || !p.invoiceDate) {
+      return res.status(400).json({
+        error: 'Invoice number and invoice date are required'
+      });
+    }
+
+    const totals = calculatePurchaseTotals(p);
+
+    db.prepare(`
+      UPDATE purchases
+      SET
+        invoiceNo = ?,
+        invoiceDate = ?,
+
+        buyerName = ?,
+        buyerGstNo = ?,
+
+        supplierName = ?,
+        supplierGstNo = ?,
+
+        taxableAmount = ?,
+
+        cgstPercent = ?,
+        cgstAmount = ?,
+
+        sgstPercent = ?,
+        sgstAmount = ?,
+
+        grandTotal = ?,
+
+        updatedAt = datetime('now')
+
+      WHERE id = ?
+    `).run(
+      p.invoiceNo,
+      p.invoiceDate,
+
+      p.buyerName || '',
+      p.buyerGstNo || '',
+
+      p.supplierName || '',
+      p.supplierGstNo || '',
+
+      totals.taxableAmount,
+
+      totals.cgstPercent,
+      totals.cgstAmount,
+
+      totals.sgstPercent,
+      totals.sgstAmount,
+
+      totals.grandTotal,
+
+      req.params.id
+    );
+
+    const purchase = db.prepare(`
+      SELECT *
+      FROM purchases
+      WHERE id = ?
+    `).get(req.params.id);
+
+    res.json(purchase);
+
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to update purchase',
+      message: err.message
+    });
+  }
 });
 
+
+// DELETE purchase
 app.delete('/api/purchases/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM purchases WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Purchase not found' });
-  db.prepare('DELETE FROM purchases WHERE id = ?').run(req.params.id);
-  res.json({ success: true });
+  try {
+    const existing = db.prepare(`
+      SELECT *
+      FROM purchases
+      WHERE id = ?
+    `).get(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        error: 'Purchase not found'
+      });
+    }
+
+    db.prepare(`
+      DELETE FROM purchases
+      WHERE id = ?
+    `).run(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Purchase deleted successfully'
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to delete purchase',
+      message: err.message
+    });
+  }
 });
+
 
 // ===== Report API =====
 app.get('/api/report', (req, res) => {
+  const { year, month } = req.query;
 
-  const {
-    year,
-    month,
-    supplier,
-    fromDate,
-    toDate,
-    excludeProforma,
-    excludeQuotation
-  } = req.query;
-
-
-  // ============================================================
-  // HELPER
-  // ============================================================
-
-  const isTrue = (value) =>
-    String(value).toLowerCase() === 'true';
-
-
-  const shouldExcludeProforma =
-    isTrue(excludeProforma);
-
-  const shouldExcludeQuotation =
-    isTrue(excludeQuotation);
-
-
-  // ============================================================
-  // SALES / BILLS
-  // ============================================================
-
-  let salesQuery = `
-    SELECT
-      billNumber as invoiceNo,
-      billDate as invoiceDate,
-
-      supplierName as name,
-      supplierGstNo as gstNo,
-
-      buyerName,
-      buyerGstNo,
-
-      totalAmount as taxableAmount,
-      totalGst,
-      grandTotal as totalWithTax,
-      totalAmount as totalWithoutTax,
-
-      substr(billDate, 1, 7) as monthKey
-
-    FROM bills
-
-    WHERE 1=1
-  `;
-
-
+  // Sales from bills
+  let salesQuery = `SELECT billNumber as invoiceNo, billDate as invoiceDate, buyerName as name, buyerGstNo as gstNo,
+    totalAmount as taxableAmount, totalGst, grandTotal as totalWithTax, totalAmount as totalWithoutTax,
+    substr(billDate,1,7) as monthKey FROM bills WHERE 1=1`;
   const salesParams = [];
+  if (year) { salesQuery += ` AND substr(billDate,1,4) = ?`; salesParams.push(year); }
+  if (month) { salesQuery += ` AND substr(billDate,6,2) = ?`; salesParams.push(String(month).padStart(2, '0')); }
+  salesQuery += ' ORDER BY billDate DESC';
+  const sales = db.prepare(salesQuery).all(...salesParams);
 
+  // Compute CGST/SGST per sale (half of totalGst)
+  sales.forEach(s => { s.cgst = +(s.totalGst / 2).toFixed(2); s.sgst = +(s.totalGst / 2).toFixed(2); });
 
-  // ============================================================
-  // YEAR
-  // ============================================================
+ // Purchases
+let purchaseQuery = `
+  SELECT
+    invoiceNo,
+    invoiceDate,
 
-  if (year) {
+    buyerName,
+    buyerGstNo,
 
-    salesQuery += `
-      AND substr(billDate, 1, 4) = ?
-    `;
+    supplierName,
+    supplierGstNo,
 
-    salesParams.push(year);
+    taxableAmount,
 
-  }
+    cgstPercent,
+    cgstAmount,
 
+    sgstPercent,
+    sgstAmount,
 
-  // ============================================================
-  // MONTH
-  // ============================================================
+    grandTotal,
 
-  if (month) {
+    taxableAmount as totalWithoutTax,
+    grandTotal as totalWithTax,
 
-    salesQuery += `
-      AND substr(billDate, 6, 2) = ?
-    `;
+    substr(invoiceDate,1,7) as monthKey
 
-    salesParams.push(
-      String(month).padStart(2, '0')
-    );
+  FROM purchases
+  WHERE 1=1
+`;
 
-  }
+const purchaseParams = [];
 
+if (year) {
+  purchaseQuery += ` AND substr(invoiceDate,1,4) = ?`;
+  purchaseParams.push(year);
+}
 
-  // ============================================================
-  // DATE RANGE
-  // ============================================================
+if (month) {
+  purchaseQuery += ` AND substr(invoiceDate,6,2) = ?`;
+  purchaseParams.push(String(month).padStart(2, '0'));
+}
 
-  if (fromDate) {
+purchaseQuery += ` ORDER BY invoiceDate DESC`;
 
-    salesQuery += `
-      AND billDate >= ?
-    `;
+const purchases = db
+  .prepare(purchaseQuery)
+  .all(...purchaseParams);
 
-    salesParams.push(fromDate);
-
-  }
-
-
-  if (toDate) {
-
-    salesQuery += `
-      AND billDate <= ?
-    `;
-
-    salesParams.push(toDate);
-
-  }
-
-
-  // ============================================================
-  // SUPPLIER
-  // ============================================================
-
-  if (supplier) {
-
-    salesQuery += `
-      AND supplierName = ?
-    `;
-
-    salesParams.push(supplier);
-
-  }
-
-
-  // ============================================================
-  // EXCLUDE PROFORMA
-  //
-  // Examples:
-  // PROFARMA-20260830-9587
-  // PROFORMA-20260830-123
-  //
-  // Case insensitive
-  // ============================================================
-
-  if (shouldExcludeProforma) {
-
-    salesQuery += `
-      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFARMA%'
-      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%PROFORMA%'
-    `;
-
-  }
-
-
-  // ============================================================
-  // EXCLUDE QUOTATION
-  //
-  // Examples:
-  // BILL-QUOTATION1
-  // QUOTATION-20260830-001
-  // QUOTATIONS-001
-  //
-  // Case insensitive
-  // ============================================================
-
-  if (shouldExcludeQuotation) {
-
-    salesQuery += `
-      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%QUOTATION%'
-      AND UPPER(COALESCE(billNumber, '')) NOT LIKE '%QUOTATIONS%'
-    `;
-
-  }
-
-
-  salesQuery += `
-    ORDER BY billDate DESC
-  `;
-
-
-  const sales =
-    db.prepare(salesQuery).all(...salesParams);
-
-
-  // ============================================================
-  // CGST / SGST
-  // ============================================================
-
-  sales.forEach(s => {
-
-    const gst =
-      Number(s.totalGst || 0);
-
-    s.cgst =
-      +(gst / 2).toFixed(2);
-
-    s.sgst =
-      +(gst / 2).toFixed(2);
-
-  });
-
-
-  // ============================================================
-  // PURCHASES
-  // ============================================================
-
-  let purchaseQuery = `
-    SELECT
-      invoiceNo,
-      invoiceDate,
-
-      name,
-      gstNo,
-
-      taxableAmount,
-      cgst,
-      sgst,
-      totalWithTax,
-      totalWithoutTax,
-
-      substr(invoiceDate, 1, 7) as monthKey
-
-    FROM purchases
-
-    WHERE 1=1
-  `;
-
-
-  const purchaseParams = [];
-
-
-  // ============================================================
-  // PURCHASE YEAR
-  // ============================================================
-
-  if (year) {
-
-    purchaseQuery += `
-      AND substr(invoiceDate, 1, 4) = ?
-    `;
-
-    purchaseParams.push(year);
-
-  }
-
-
-  // ============================================================
-  // PURCHASE MONTH
-  // ============================================================
-
-  if (month) {
-
-    purchaseQuery += `
-      AND substr(invoiceDate, 6, 2) = ?
-    `;
-
-    purchaseParams.push(
-      String(month).padStart(2, '0')
-    );
-
-  }
-
-
-  // ============================================================
-  // PURCHASE DATE RANGE
-  // ============================================================
-
-  if (fromDate) {
-
-    purchaseQuery += `
-      AND invoiceDate >= ?
-    `;
-
-    purchaseParams.push(fromDate);
-
-  }
-
-
-  if (toDate) {
-
-    purchaseQuery += `
-      AND invoiceDate <= ?
-    `;
-
-    purchaseParams.push(toDate);
-
-  }
-
-
-  // ============================================================
-  // PURCHASE SUPPLIER
-  // ============================================================
-
-  if (supplier) {
-
-    purchaseQuery += `
-      AND name = ?
-    `;
-
-    purchaseParams.push(supplier);
-
-  }
-
-
-  // ============================================================
-  // PURCHASE PROFORMA
-  // ============================================================
-
-  if (shouldExcludeProforma) {
-
-    purchaseQuery += `
-      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFARMA%'
-      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%PROFORMA%'
-    `;
-
-  }
-
-
-  // ============================================================
-  // PURCHASE QUOTATION
-  // ============================================================
-
-  if (shouldExcludeQuotation) {
-
-    purchaseQuery += `
-      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%QUOTATION%'
-      AND UPPER(COALESCE(invoiceNo, '')) NOT LIKE '%QUOTATIONS%'
-    `;
-
-  }
-
-
-  purchaseQuery += `
-    ORDER BY invoiceDate DESC
-  `;
-
-
-  const purchases =
-    db.prepare(purchaseQuery).all(...purchaseParams);
-
-
-  // ============================================================
-  // MONTHLY SUMMARY
-  // ============================================================
-
-  const monthMap = {};
-
-
-  const addToMonth = (
-    key,
-    type,
-    row
-  ) => {
-
-    if (!monthMap[key]) {
-
-      monthMap[key] = {
-
-        month: key,
-
-        sales: {
-          count: 0,
-          cgst: 0,
-          sgst: 0,
-          totalWithTax: 0,
-          totalWithoutTax: 0
-        },
-
-        purchases: {
-          count: 0,
-          cgst: 0,
-          sgst: 0,
-          totalWithTax: 0,
-          totalWithoutTax: 0
-        }
-
-      };
-
-    }
-
-
-    const m =
-      monthMap[key][type];
-
-
-    m.count++;
-
-
-    m.cgst =
-      +(
-        m.cgst +
-        Number(row.cgst || 0)
-      ).toFixed(2);
-
-
-    m.sgst =
-      +(
-        m.sgst +
-        Number(row.sgst || 0)
-      ).toFixed(2);
-
-
-    m.totalWithTax =
-      +(
-        m.totalWithTax +
-        Number(row.totalWithTax || 0)
-      ).toFixed(2);
-
-
-    m.totalWithoutTax =
-      +(
-        m.totalWithoutTax +
-        Number(row.totalWithoutTax || 0)
-      ).toFixed(2);
-
-  };
-
-
-  sales.forEach(s =>
-    addToMonth(
-      s.monthKey,
-      'sales',
-      s
-    )
-  );
-
-
-  purchases.forEach(p =>
-    addToMonth(
-      p.monthKey,
-      'purchases',
-      p
-    )
-  );
-
-
-  const monthlySummary =
-    Object.values(monthMap)
-      .sort((a, b) =>
-        b.month.localeCompare(a.month)
-      );
-
-
-  // ============================================================
-  // SUPPLIER LIST
-  //
-  // Get supplier names from both bills and purchases.
-  // ============================================================
-
-  const billSuppliers =
-    db.prepare(`
-      SELECT DISTINCT supplierName as supplier
-      FROM bills
-      WHERE supplierName IS NOT NULL
-        AND TRIM(supplierName) != ''
-    `)
-    .all()
-    .map(r => r.supplier);
-
-
-  const purchaseSuppliers =
-    db.prepare(`
-      SELECT DISTINCT name as supplier
-      FROM purchases
-      WHERE name IS NOT NULL
-        AND TRIM(name) != ''
-    `)
-    .all()
-    .map(r => r.supplier);
-
-
-  const suppliers =
-    [...new Set([
-      ...billSuppliers,
-      ...purchaseSuppliers
-    ])]
-      .sort((a, b) =>
-        a.localeCompare(b)
-      );
-
-
-  // ============================================================
-  // AVAILABLE YEARS
-  // ============================================================
-
-  const yearsFromSales =
-    db.prepare(`
-      SELECT DISTINCT
-        substr(billDate, 1, 4) as y
-      FROM bills
-      WHERE billDate IS NOT NULL
-    `)
-    .all()
-    .map(r => r.y);
-
-
-  const yearsFromPurchases =
-    db.prepare(`
-      SELECT DISTINCT
-        substr(invoiceDate, 1, 4) as y
-      FROM purchases
-      WHERE invoiceDate IS NOT NULL
-    `)
-    .all()
-    .map(r => r.y);
-
-
-  const availableYears =
-    [
-      ...new Set([
-        ...yearsFromSales,
-        ...yearsFromPurchases
-      ])
-    ]
-      .filter(Boolean)
-      .sort()
-      .reverse();
-
-
-  // ============================================================
-  // RESPONSE
-  // ============================================================
-
-  res.json({
-
-    sales,
-
-    purchases,
-
-    monthlySummary,
-
-    availableYears,
-
-    suppliers
-
-  });
-
+// Keep report's common cgst/sgst field names
+purchases.forEach(p => {
+  p.cgst = p.cgstAmount;
+  p.sgst = p.sgstAmount;
 });
 
 
+  // Monthly summary
+  const monthMap = {};
+  const addToMonth = (key, type, row) => {
+    if (!monthMap[key]) monthMap[key] = { month: key, sales: { count: 0, cgst: 0, sgst: 0, totalWithTax: 0, totalWithoutTax: 0 }, purchases: { count: 0, cgst: 0, sgst: 0, totalWithTax: 0, totalWithoutTax: 0 } };
+    const m = monthMap[key][type];
+    m.count++;
+    m.cgst = +(m.cgst + (row.cgst || 0)).toFixed(2);
+    m.sgst = +(m.sgst + (row.sgst || 0)).toFixed(2);
+    m.totalWithTax = +(m.totalWithTax + (row.totalWithTax || 0)).toFixed(2);
+    m.totalWithoutTax = +(m.totalWithoutTax + (row.totalWithoutTax || 0)).toFixed(2);
+  };
+  sales.forEach(s => addToMonth(s.monthKey, 'sales', s));
+  purchases.forEach(p => addToMonth(p.monthKey, 'purchases', p));
 
+  const monthlySummary = Object.values(monthMap).sort((a, b) => b.month.localeCompare(a.month));
 
-// Seed some purchases if empty
-const pCount = db.prepare('SELECT COUNT(*) as cnt FROM purchases').get().cnt;
-if (pCount === 0) {
-  const seedPurchases = [
-    { invoiceNo: 'PUR-001', invoiceDate: '2025-01-10', name: 'Raw Material Supplier Co', gstNo: '27RAWMT1234A1Z1', taxableAmount: 50000, cgst: 4500, sgst: 4500 },
-    { invoiceNo: 'PUR-002', invoiceDate: '2025-02-15', name: 'Office Supplies Ltd', gstNo: '27OFFSP5678B1Z2', taxableAmount: 12000, cgst: 1080, sgst: 1080 },
-    { invoiceNo: 'PUR-003', invoiceDate: '2025-03-20', name: 'Transport Services Pvt Ltd', gstNo: '27TRNSP9012C1Z3', taxableAmount: 25000, cgst: 2250, sgst: 2250 },
-    { invoiceNo: 'PUR-004', invoiceDate: '2025-04-05', name: 'Raw Material Supplier Co', gstNo: '27RAWMT1234A1Z1', taxableAmount: 75000, cgst: 6750, sgst: 6750 },
-    { invoiceNo: 'PUR-005', invoiceDate: '2025-05-12', name: 'Packaging Materials Inc', gstNo: '27PKGMT3456D1Z4', taxableAmount: 18000, cgst: 1620, sgst: 1620 },
-  ];
-  seedPurchases.forEach(p => {
-    db.prepare(`INSERT INTO purchases (invoiceNo, invoiceDate, name, gstNo, taxableAmount, cgst, sgst, totalWithTax, totalWithoutTax)
-      VALUES (?,?,?,?,?,?,?,?,?)`).run(p.invoiceNo, p.invoiceDate, p.name, p.gstNo, p.taxableAmount, p.cgst, p.sgst, +(p.taxableAmount + p.cgst + p.sgst).toFixed(2), p.taxableAmount);
-  });
-  console.log('Seeded 5 purchases.');
-}
+  // Available years
+  const yearsFromSales = db.prepare("SELECT DISTINCT substr(billDate,1,4) as y FROM bills").all().map(r => r.y);
+  const yearsFromPurchases = db.prepare("SELECT DISTINCT substr(invoiceDate,1,4) as y FROM purchases").all().map(r => r.y);
+  const availableYears = [...new Set([...yearsFromSales, ...yearsFromPurchases])].sort().reverse();
+
+  res.json({ sales, purchases, monthlySummary, availableYears });
+});
+
+ 
 
 // ===== Backup Helper =====
 function saveBackupToFolder(backupData) {
@@ -1025,16 +816,47 @@ app.post('/api/restore', (req, res) => {
       if (backupBills) backupBills.forEach(b => saveBillToDB(b));
       if (backupPurchases) {
         backupPurchases.forEach(p => {
-          const taxable = +(p.taxableAmount || 0);
-          const cgst = +(p.cgst || 0);
-          const sgst = +(p.sgst || 0);
-          db.prepare(`INSERT INTO purchases (invoiceNo, invoiceDate, name, gstNo, taxableAmount, cgst, sgst, totalWithTax, totalWithoutTax)
-            VALUES (?,?,?,?,?,?,?,?,?)`).run(
-            p.invoiceNo, p.invoiceDate, p.name, p.gstNo, taxable, cgst, sgst,
-            +(taxable + cgst + sgst).toFixed(2), taxable
+          const totals = calculatePurchaseTotals(p);
+
+          db.prepare(`
+      INSERT INTO purchases (
+        invoiceNo,
+        invoiceDate,
+        buyerName,
+        buyerGstNo,
+        supplierName,
+        supplierGstNo,
+        taxableAmount,
+        cgstPercent,
+        cgstAmount,
+        sgstPercent,
+        sgstAmount,
+        grandTotal
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+            p.invoiceNo,
+            p.invoiceDate,
+
+            p.buyerName || '',
+            p.buyerGstNo || '',
+
+            p.supplierName || '',
+            p.supplierGstNo || '',
+
+            totals.taxableAmount,
+
+            totals.cgstPercent,
+            totals.cgstAmount,
+
+            totals.sgstPercent,
+            totals.sgstAmount,
+
+            totals.grandTotal
           );
         });
       }
+
     });
     restoreTx();
     const totalBills = db.prepare('SELECT COUNT(*) as cnt FROM bills').get().cnt;

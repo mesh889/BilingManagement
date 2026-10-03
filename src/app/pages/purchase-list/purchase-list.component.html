@@ -1,52 +1,627 @@
+<!-- ========================================== HEADER ========================================== -->
+
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h4 class="mb-1 fw-bold"><i class="bi bi-cart me-2"></i>Purchases</h4>
-    <p class="text-muted mb-0 small">Manage purchase invoices</p>
+    <h4 class="mb-1 fw-bold">
+      <i class="bi bi-cart me-2"></i>
+      Purchases
+    </h4>
+
+    <p class="text-muted mb-0 small">
+      Manage purchase invoices
+    </p>
   </div>
-  <a routerLink="/purchases/create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Add Purchase</a>
+
+  <a
+    routerLink="/purchases/create"
+    class="btn btn-primary"
+  >
+    <i class="bi bi-plus-lg me-1"></i>
+    Add Purchase
+  </a>
 </div>
 
-<div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-4">#</th>
-            <th>Invoice No</th>
-            <th>Date</th>
-            <th>Name</th>
-            <th>GST No</th>
-            <th class="text-end">Taxable</th>
-            <th class="text-end">CGST</th>
-            <th class="text-end">SGST</th>
-            <th class="text-end">Total</th>
-            <th class="text-center pe-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (p of purchases; track p.id; let i = $index) {
-            <tr>
-              <td class="ps-4 text-muted">{{ i + 1 }}</td>
-              <td class="fw-semibold text-primary">{{ p.invoiceNo }}</td>
-              <td>{{ p.invoiceDate }}</td>
-              <td>{{ p.name }}</td>
-              <td class="small">{{ p.gstNo }}</td>
-              <td class="text-end">&#8377; {{ p.taxableAmount | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ p.cgst | number:'1.2-2' }}</td>
-              <td class="text-end">&#8377; {{ p.sgst | number:'1.2-2' }}</td>
-              <td class="text-end fw-semibold">&#8377; {{ p.totalWithTax | number:'1.2-2' }}</td>
-              <td class="text-center pe-4">
-                <a [routerLink]="['/purchases/edit', p.id]" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil-square"></i></a>
-                <button class="btn btn-sm btn-outline-danger" (click)="delete(p.id)"><i class="bi bi-trash"></i></button>
-              </td>
-            </tr>
+
+<!-- ========================================== FILTERS ========================================== -->
+
+<div class="card mb-4">
+  <div class="card-body">
+
+    <div class="row g-3 align-items-end">
+
+      <!-- GLOBAL SEARCH -->
+      <div class="col-lg-5 col-md-6">
+
+        <label class="form-label small fw-semibold">
+          Search
+        </label>
+
+        <div class="input-group">
+
+          <span class="input-group-text">
+            <i class="bi bi-search"></i>
+          </span>
+
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Search invoice, buyer, supplier, GST..."
+            [(ngModel)]="searchText"
+            (input)="applyFilters()"
+          />
+
+          @if (searchText) {
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="searchText = ''; applyFilters()"
+              title="Clear search"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
           }
-          @if (purchases.length === 0) {
-            <tr><td colspan="10" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No purchases found.</td></tr>
+
+        </div>
+
+        <div class="form-text">
+          Search invoice number, buyer, supplier or GST number
+        </div>
+
+      </div>
+
+
+      <!-- YEAR -->
+      <div class="col-lg-2 col-md-3">
+
+        <label class="form-label small fw-semibold">
+          Year
+        </label>
+
+        <select
+          class="form-select"
+          [(ngModel)]="selectedYear"
+          (change)="applyFilters()"
+        >
+          <option value="">
+            All Years
+          </option>
+
+          @for (year of years; track year) {
+            <option [value]="year">
+              {{ year }}
+            </option>
           }
-        </tbody>
-      </table>
+        </select>
+
+      </div>
+
+
+      <!-- BUYER -->
+      <div class="col-lg-2 col-md-3">
+
+        <label class="form-label small fw-semibold">
+          Buyer
+        </label>
+
+        <select
+          class="form-select"
+          [(ngModel)]="selectedBuyer"
+          (change)="applyFilters()"
+        >
+          <option value="">
+            All Buyers
+          </option>
+
+          @for (buyer of buyers; track buyer) {
+            <option [value]="buyer">
+              {{ buyer }}
+            </option>
+          }
+        </select>
+
+      </div>
+
+
+      <!-- SUPPLIER -->
+      <div class="col-lg-2 col-md-3">
+
+        <label class="form-label small fw-semibold">
+          Supplier
+        </label>
+
+        <select
+          class="form-select"
+          [(ngModel)]="selectedSupplier"
+          (change)="applyFilters()"
+        >
+          <option value="">
+            All Suppliers
+          </option>
+
+          @for (supplier of suppliers; track supplier) {
+            <option [value]="supplier">
+              {{ supplier }}
+            </option>
+          }
+        </select>
+
+      </div>
+
+
+      <!-- CLEAR BUTTON -->
+      <div class="col-lg-1 col-md-3">
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary w-100"
+          (click)="clearFilters()"
+          title="Clear all filters"
+        >
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+
+      </div>
+
     </div>
+
+
+    <!-- FILTER RESULT INFO -->
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+
+      <div class="small text-muted">
+
+        Showing
+        <strong>{{ filteredPurchases.length }}</strong>
+        of
+        <strong>{{ purchases.length }}</strong>
+        purchases
+
+      </div>
+
+
+      @if (
+        selectedYear ||
+        selectedBuyer ||
+        selectedSupplier ||
+        searchText
+      ) {
+
+        <button
+          type="button"
+          class="btn btn-sm btn-link text-decoration-none p-0"
+          (click)="clearFilters()"
+        >
+          <i class="bi bi-x-circle me-1"></i>
+          Clear all filters
+        </button>
+
+      }
+
+    </div>
+
   </div>
+</div>
+
+
+<!-- ========================================== SUMMARY ========================================== -->
+
+<div class="row g-3 mb-4">
+
+  <!-- TAXABLE -->
+  <div class="col-md-4">
+
+    <div class="card border-0 bg-light h-100">
+
+      <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+          <div>
+
+            <div class="text-muted small">
+              Taxable Amount
+            </div>
+
+            <div class="fs-5 fw-bold">
+              ₹ {{ filteredTaxableTotal | number:'1.2-2' }}
+            </div>
+
+          </div>
+
+          <div class="text-primary fs-3">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- GST -->
+  <div class="col-md-4">
+
+    <div class="card border-0 bg-light h-100">
+
+      <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+          <div>
+
+            <div class="text-muted small">
+              Total GST
+            </div>
+
+            <div class="fs-5 fw-bold">
+              ₹ {{ filteredGstTotal | number:'1.2-2' }}
+            </div>
+
+            <div class="small text-muted">
+
+              CGST:
+              ₹ {{ filteredCgstTotal | number:'1.2-2' }}
+
+              &nbsp;|&nbsp;
+
+              SGST:
+              ₹ {{ filteredSgstTotal | number:'1.2-2' }}
+
+            </div>
+
+          </div>
+
+          <div class="text-success fs-3">
+            <i class="bi bi-percent"></i>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- GRAND TOTAL -->
+  <div class="col-md-4">
+
+    <div class="card border-0 bg-primary text-white h-100">
+
+      <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+          <div>
+
+            <div class="small opacity-75">
+              Grand Total
+            </div>
+
+            <div class="fs-5 fw-bold">
+              ₹ {{ filteredGrandTotal | number:'1.2-2' }}
+            </div>
+
+          </div>
+
+          <div class="fs-3">
+            <i class="bi bi-receipt"></i>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ========================================== PURCHASE TABLE ========================================== -->
+
+<div class="card">
+
+  <div class="card-body p-0">
+
+    <div class="table-responsive">
+
+      <table class="table table-hover align-middle mb-0">
+
+        <!-- HEADER -->
+
+        <thead class="table-light">
+
+          <tr>
+
+            <th class="ps-4">
+              #
+            </th>
+
+            <th>
+              Invoice No
+            </th>
+
+            <th>
+              Date
+            </th>
+
+            <th>
+              Buyer
+            </th>
+
+            <th>
+              Buyer GST
+            </th>
+
+            <th>
+              Supplier
+            </th>
+
+            <th>
+              Supplier GST
+            </th>
+
+            <th class="text-end">
+              Taxable
+            </th>
+
+            <th class="text-end">
+              CGST
+            </th>
+
+            <th class="text-end">
+              SGST
+            </th>
+
+            <th class="text-end">
+              Total
+            </th>
+
+            <th class="text-center pe-4">
+              Actions
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <!-- BODY -->
+
+        <tbody>
+
+          @for (
+            p of filteredPurchases;
+            track p.id;
+            let i = $index
+          ) {
+
+            <tr>
+
+              <!-- NUMBER -->
+              <td class="ps-4 text-muted">
+                {{ i + 1 }}
+              </td>
+
+
+              <!-- INVOICE -->
+              <td>
+                <span class="fw-semibold text-primary">
+                  {{ p.invoiceNo }}
+                </span>
+              </td>
+
+
+              <!-- DATE -->
+              <td>
+                {{ p.invoiceDate | date:'dd-MM-yyyy' }}
+              </td>
+
+
+              <!-- BUYER -->
+              <td>
+                <div class="fw-semibold">
+                  {{ p.buyerName || '-' }}
+                </div>
+              </td>
+
+
+              <!-- BUYER GST -->
+              <td>
+                <span class="small">
+                  {{ p.buyerGstNo || '-' }}
+                </span>
+              </td>
+
+
+              <!-- SUPPLIER -->
+              <td>
+                <div class="fw-semibold">
+                  {{ p.supplierName || '-' }}
+                </div>
+              </td>
+
+
+              <!-- SUPPLIER GST -->
+              <td>
+                <span class="small">
+                  {{ p.supplierGstNo || '-' }}
+                </span>
+              </td>
+
+
+              <!-- TAXABLE -->
+              <td class="text-end">
+                ₹ {{ p.taxableAmount | number:'1.2-2' }}
+              </td>
+
+
+              <!-- CGST -->
+              <td class="text-end">
+
+                <div>
+                  ₹ {{ p.cgstAmount | number:'1.2-2' }}
+                </div>
+
+                <div class="small text-muted">
+                  {{ p.cgstPercent }}%
+                </div>
+
+              </td>
+
+
+              <!-- SGST -->
+              <td class="text-end">
+
+                <div>
+                  ₹ {{ p.sgstAmount | number:'1.2-2' }}
+                </div>
+
+                <div class="small text-muted">
+                  {{ p.sgstPercent }}%
+                </div>
+
+              </td>
+
+
+              <!-- GRAND TOTAL -->
+              <td class="text-end">
+
+                <span class="fw-bold">
+                  ₹ {{ p.grandTotal | number:'1.2-2' }}
+                </span>
+
+              </td>
+
+
+              <!-- ACTIONS -->
+              <td class="text-center pe-4">
+
+                <a
+                  [routerLink]="['/purchases/edit', p.id]"
+                  class="btn btn-sm btn-outline-primary me-1"
+                  title="Edit Purchase"
+                >
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  title="Delete Purchase"
+                  (click)="delete(p.id)"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+
+              </td>
+
+            </tr>
+
+          }
+
+
+          <!-- NO DATA -->
+
+          @if (filteredPurchases.length === 0) {
+
+            <tr>
+
+              <td
+                colspan="12"
+                class="text-center py-5 text-muted"
+              >
+
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+
+                @if (purchases.length === 0) {
+
+                  <div class="fw-semibold">
+                    No purchases found.
+                  </div>
+
+                  <div class="small mt-1">
+                    Click
+                    <strong>Add Purchase</strong>
+                    to create your first purchase.
+                  </div>
+
+                } @else {
+
+                  <div class="fw-semibold">
+                    No purchases match your filters.
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary mt-2"
+                    (click)="clearFilters()"
+                  >
+                    <i class="bi bi-x-circle me-1"></i>
+                    Clear Filters
+                  </button>
+
+                }
+
+              </td>
+
+            </tr>
+
+          }
+
+        </tbody>
+
+
+        <!-- TOTAL -->
+
+        @if (filteredPurchases.length > 0) {
+
+          <tfoot class="table-light">
+
+            <tr>
+
+              <td
+                colspan="7"
+                class="text-end fw-bold"
+              >
+                Total
+              </td>
+
+              <td class="text-end fw-bold">
+                ₹ {{ filteredTaxableTotal | number:'1.2-2' }}
+              </td>
+
+              <td class="text-end fw-bold">
+                ₹ {{ filteredCgstTotal | number:'1.2-2' }}
+              </td>
+
+              <td class="text-end fw-bold">
+                ₹ {{ filteredSgstTotal | number:'1.2-2' }}
+              </td>
+
+              <td class="text-end fw-bold text-primary">
+                ₹ {{ filteredGrandTotal | number:'1.2-2' }}
+              </td>
+
+              <td></td>
+
+            </tr>
+
+          </tfoot>
+
+        }
+
+      </table>
+
+    </div>
+
+  </div>
+
 </div>

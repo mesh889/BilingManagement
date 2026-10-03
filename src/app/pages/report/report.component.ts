@@ -558,52 +558,73 @@ export class ReportComponent implements OnInit {
     // PURCHASES
     // ==========================================================
 
-    else {
+    // ==========================================================
+// PURCHASES
+// ==========================================================
 
-      csv +=
-        'Invoice No,Date,Supplier Name,GST No,CGST,SGST,With Tax,Without Tax\n';
+else {
 
-
-      this.purchases.forEach(p => {
-
-        csv += [
-
-          p.invoiceNo,
-          p.invoiceDate,
-          p.name,
-          p.gstNo,
-
-          p.cgst,
-          p.sgst,
-
-          p.totalWithTax,
-          p.totalWithoutTax
-
-        ]
-          .map(esc)
-          .join(',') + '\n';
-
-      });
+  csv +=
+    'Invoice No,Date,Buyer Name,Buyer GST No,Supplier Name,Supplier GST No,Taxable Amount,CGST %,CGST,SGST %,SGST,With Tax,Without Tax\n';
 
 
-      csv += [
+  this.purchases.forEach(p => {
 
-        'TOTAL',
-        '',
-        '',
-        '',
+    csv += [
 
-        this.purchasesTotals.cgst,
-        this.purchasesTotals.sgst,
+      p.invoiceNo,
+      p.invoiceDate,
 
-        this.purchasesTotals.withTax,
-        this.purchasesTotals.withoutTax
+      p.buyerName || '',
+      p.buyerGstNo || '',
 
-      ]
-        .map(esc)
-        .join(',') + '\n';
+      p.supplierName || '',
+      p.supplierGstNo || '',
 
-    }
+      p.taxableAmount || 0,
+
+      p.cgstPercent || 0,
+      p.cgstAmount || 0,
+
+      p.sgstPercent || 0,
+      p.sgstAmount || 0,
+
+      p.grandTotal || 0,
+      p.taxableAmount || 0
+
+    ]
+      .map(esc)
+      .join(',') + '\n';
+
+  });
+
+
+  csv += [
+
+    'TOTAL',
+    '',
+    '',
+    '',
+    '',
+    '',
+
+    this.purchasesTotals.withoutTax,
+
+    '',
+    this.purchasesTotals.cgst,
+
+    '',
+    this.purchasesTotals.sgst,
+
+    this.purchasesTotals.withTax,
+
+    this.purchasesTotals.withoutTax
+
+  ]
+    .map(esc)
+    .join(',') + '\n';
+
+}
 
 
     // ==========================================================

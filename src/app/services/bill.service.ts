@@ -63,6 +63,17 @@ export class BillService {
   createPurchase(p: any): Observable<any> { return this.http.post(`${this.baseUrl}/api/purchases`, p); }
   updatePurchase(id: string, p: any): Observable<any> { return this.http.put(`${this.baseUrl}/api/purchases/${id}`, p); }
   deletePurchase(id: string): Observable<any> { return this.http.delete(`${this.baseUrl}/api/purchases/${id}`); }
+  getUniquePurchaseBuyers(): Observable<PartyDetails[]> {
+    return this.http.get<PartyDetails[]>(
+      `${this.baseUrl}/api/parties/purchases/buyers`
+    );
+  }
+
+  getUniquePurchaseSuppliers(): Observable<PartyDetails[]> {
+    return this.http.get<PartyDetails[]>(
+      `${this.baseUrl}/api/parties/purchases/suppliers`
+    );
+  }
 
   // Report
   getReport(

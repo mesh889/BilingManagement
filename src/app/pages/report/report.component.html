@@ -1026,11 +1026,21 @@
 
               <th>Date</th>
 
+              <th>Buyer</th>
+
+              <th>Buyer GST No</th>
+
               <th>Supplier</th>
 
-              <th>GST No</th>
+              <th>Supplier GST No</th>
+
+              <th class="text-end">Taxable Amount</th>
+
+              <th class="text-end">CGST %</th>
 
               <th class="text-end">CGST</th>
+
+              <th class="text-end">SGST %</th>
 
               <th class="text-end">SGST</th>
 
@@ -1053,6 +1063,8 @@
 
               <tr>
 
+                <!-- # -->
+
                 <td class="ps-3 text-muted">
 
                   {{ i + 1 }}
@@ -1060,62 +1072,124 @@
                 </td>
 
 
+                <!-- INVOICE NO -->
+
                 <td class="fw-semibold text-primary">
 
-                  {{ p.invoiceNo }}
+                  {{ p.invoiceNo || '-' }}
 
                 </td>
 
+
+                <!-- DATE -->
 
                 <td>
 
-                  {{ p.invoiceDate }}
+                  {{ p.invoiceDate || '-' }}
 
                 </td>
 
+
+                <!-- BUYER -->
 
                 <td>
 
-                  {{ p.name || '-' }}
+                  {{ p.buyerName || '-' }}
 
                 </td>
 
+
+                <!-- BUYER GST -->
 
                 <td class="small">
 
-                  {{ p.gstNo || '-' }}
+                  {{ p.buyerGstNo || '-' }}
 
                 </td>
 
+
+                <!-- SUPPLIER -->
+
+                <td>
+
+                  {{ p.supplierName || '-' }}
+
+                </td>
+
+
+                <!-- SUPPLIER GST -->
+
+                <td class="small">
+
+                  {{ p.supplierGstNo || '-' }}
+
+                </td>
+
+
+                <!-- TAXABLE AMOUNT -->
 
                 <td class="text-end">
 
                   &#8377;
-                  {{ p.cgst | number:'1.2-2' }}
+                  {{ p.taxableAmount | number:'1.2-2' }}
 
                 </td>
 
+
+                <!-- CGST % -->
+
+                <td class="text-end">
+
+                  {{ p.cgstPercent | number:'1.2-2' }}%
+
+                </td>
+
+
+                <!-- CGST -->
 
                 <td class="text-end">
 
                   &#8377;
-                  {{ p.sgst | number:'1.2-2' }}
+                  {{ p.cgstAmount | number:'1.2-2' }}
 
                 </td>
 
 
-                <td class="text-end fw-semibold">
+                <!-- SGST % -->
 
-                  &#8377;
-                  {{ p.totalWithTax | number:'1.2-2' }}
+                <td class="text-end">
+
+                  {{ p.sgstPercent | number:'1.2-2' }}%
 
                 </td>
 
+
+                <!-- SGST -->
 
                 <td class="text-end">
 
                   &#8377;
-                  {{ p.totalWithoutTax | number:'1.2-2' }}
+                  {{ p.sgstAmount | number:'1.2-2' }}
+
+                </td>
+
+
+                <!-- WITH TAX -->
+
+                <td class="text-end fw-semibold text-danger">
+
+                  &#8377;
+                  {{ p.grandTotal | number:'1.2-2' }}
+
+                </td>
+
+
+                <!-- WITHOUT TAX -->
+
+                <td class="text-end">
+
+                  &#8377;
+                  {{ p.taxableAmount | number:'1.2-2' }}
 
                 </td>
 
@@ -1129,7 +1203,7 @@
               <tr>
 
                 <td
-                  colspan="9"
+                  colspan="14"
                   class="text-center py-4 text-muted"
                 >
 
@@ -1150,8 +1224,10 @@
 
               <tr class="fw-bold">
 
+                <!-- LABEL -->
+
                 <td
-                  colspan="5"
+                  colspan="7"
                   class="text-end ps-3"
                 >
 
@@ -1159,6 +1235,27 @@
 
                 </td>
 
+
+                <!-- TAXABLE -->
+
+                <td class="text-end">
+
+                  &#8377;
+                  {{ purchasesTotals.withoutTax | number:'1.2-2' }}
+
+                </td>
+
+
+                <!-- CGST % -->
+
+                <td class="text-end">
+
+                  -
+
+                </td>
+
+
+                <!-- CGST -->
 
                 <td class="text-end">
 
@@ -1168,6 +1265,17 @@
                 </td>
 
 
+                <!-- SGST % -->
+
+                <td class="text-end">
+
+                  -
+
+                </td>
+
+
+                <!-- SGST -->
+
                 <td class="text-end">
 
                   &#8377;
@@ -1176,6 +1284,8 @@
                 </td>
 
 
+                <!-- WITH TAX -->
+
                 <td class="text-end">
 
                   &#8377;
@@ -1183,6 +1293,8 @@
 
                 </td>
 
+
+                <!-- WITHOUT TAX -->
 
                 <td class="text-end">
 

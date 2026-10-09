@@ -76,14 +76,14 @@ export class BillService {
   }
 
   // Report
-  getReport(
+getReport(
   year?: string,
   month?: string,
   supplier?: string,
   fromDate?: string,
   toDate?: string,
-  excludeProforma: boolean = true,
-  excludeQuotation: boolean = true
+  excludeInvoices: boolean = true,
+  excludeKeywords: string = 'proforma,profarma,quotation'
 ): Observable<any> {
 
   const params = new URLSearchParams();
@@ -108,20 +108,11 @@ export class BillService {
     params.set('toDate', toDate);
   }
 
-  params.set(
-    'excludeProforma',
-    String(excludeProforma)
-  );
+  params.set('excludeInvoices', String(excludeInvoices));
+  params.set('excludeKeywords', excludeKeywords);
 
-  params.set(
-    'excludeQuotation',
-    String(excludeQuotation)
-  );
-
-  const queryString = params.toString();
-
-  return this.http.get(
-    `${this.baseUrl}/api/report${queryString ? '?' + queryString : ''}`
+  return this.http.get<any>(
+    `${this.baseUrl}/api/report?${params.toString()}`
   );
 }
 

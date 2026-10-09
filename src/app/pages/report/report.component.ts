@@ -27,6 +27,14 @@ export class ReportComponent implements OnInit {
   fromDate = '';
   toDate = '';
 
+  excludeInvoiceKeywords = true;
+
+  // Comma-separated keywords
+  invoiceKeywords = 'proforma, quotation';
+  excludeInvoices: boolean = true;
+excludeKeywords: string = 'proforma,quotation';
+
+
   /*
    * TRUE = exclude matching invoices
    * FALSE = include matching invoices
@@ -103,68 +111,50 @@ export class ReportComponent implements OnInit {
   // LOAD REPORT
   // ============================================================
 
-  loadReport(): void {
+loadReport(): void {
+  this.loading = true;
 
-    this.loading = true;
+  const keywords = this.excludeKeywords
+    .split(',')
+    .map(keyword => keyword.trim().toLowerCase())
+    .filter(keyword => keyword.length > 0);
 
-    this.svc.getReport(
-      this.selectedYear || undefined,
-      this.selectedMonth || undefined,
-      this.selectedSupplier || undefined,
-      this.fromDate || undefined,
-      this.toDate || undefined,
-      this.excludeProforma,
-      this.excludeQuotation
-    ).subscribe({
+  this.svc.getReport(
+    this.selectedYear || undefined,
+    this.selectedMonth || undefined,
+    this.selectedSupplier || undefined,
+    this.fromDate || undefined,
+    this.toDate || undefined,
+    this.excludeInvoices,
+    keywords.join(',')
+  ).subscribe({
+    next: (data) => {
+      this.allSales = data.sales || [];
+      this.allPurchases = data.purchases || [];
 
-      next: (data) => {
+      this.sales = [...this.allSales];
+      this.purchases = [...this.allPurchases];
 
-        this.allSales = data.sales || [];
-        this.allPurchases = data.purchases || [];
+      this.monthlySummary = data.monthlySummary || [];
+      this.suppliers = data.suppliers || [];
+      this.availableYears = data.availableYears || [];
 
-        this.sales = this.allSales;
-        this.purchases = this.allPurchases;
+      this.loading = false;
+    },
 
-        this.monthlySummary =
-          data.monthlySummary || [];
+    error: (error) => {
+      console.error('Failed to load report:', error);
 
+      this.allSales = [];
+      this.allPurchases = [];
+      this.sales = [];
+      this.purchases = [];
+      this.monthlySummary = [];
 
-        /*
-         * Supplier dropdown
-         */
-
-        this.suppliers =
-          data.suppliers || [];
-
-
-        /*
-         * Available years
-         */
-
-        this.availableYears =
-          data.availableYears || [];
-
-
-        this.loading = false;
-      },
-
-      error: (error) => {
-
-        console.error(
-          'Failed to load report:',
-          error
-        );
-
-        this.sales = [];
-        this.purchases = [];
-        this.monthlySummary = [];
-
-        this.loading = false;
-      }
-
-    });
-
-  }
+      this.loading = false;
+    }
+  });
+}
 
 
   // ============================================================
@@ -218,6 +208,8 @@ export class ReportComponent implements OnInit {
 
     this.excludeProforma = true;
     this.excludeQuotation = true;
+    this.excludeInvoices = true;
+    this.excludeKeywords = 'proforma,quotation';
 
     this.loadReport();
   }

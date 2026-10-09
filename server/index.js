@@ -88,30 +88,30 @@ db.exec(`
 
  
   CREATE TABLE IF NOT EXISTS purchases (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-  invoiceNo TEXT NOT NULL,
-  invoiceDate TEXT NOT NULL,
+      invoiceNo TEXT NOT NULL,
+      invoiceDate TEXT NOT NULL,
 
-  buyerName TEXT,
-  buyerGstNo TEXT,
+      buyerName TEXT,
+      buyerGstNo TEXT,
 
-  supplierName TEXT,
-  supplierGstNo TEXT,
+      supplierName TEXT,
+      supplierGstNo TEXT,
 
-  taxableAmount REAL DEFAULT 0,
+      taxableAmount REAL DEFAULT 0,
 
-  cgstPercent REAL DEFAULT 0,
-  cgstAmount REAL DEFAULT 0,
+      cgstPercent REAL DEFAULT 0,
+      cgstAmount REAL DEFAULT 0,
 
-  sgstPercent REAL DEFAULT 0,
-  sgstAmount REAL DEFAULT 0,
+      sgstPercent REAL DEFAULT 0,
+      sgstAmount REAL DEFAULT 0,
 
-  grandTotal REAL DEFAULT 0,
+      grandTotal REAL DEFAULT 0,
 
-  createdAt TEXT DEFAULT (datetime('now')),
-  updatedAt TEXT DEFAULT (datetime('now'))
-);
+      createdAt TEXT DEFAULT (datetime('now')),
+      updatedAt TEXT DEFAULT (datetime('now'))
+    );
 `);
 
 // ===== Helper: calc item amount =====
@@ -914,24 +914,165 @@ app.listen(PORT, () => {
 });
 function gitBackup() {
   try {
+    console.log('\n========== GIT BACKUP CHECK ==========');
+
+    // Read current business data from SQLite
+    const currentData = {
+      bills: db.prepare(`
+        SELECT * FROM bills ORDER BY id
+      `).all(),
+
+      bill_items: db.prepare(`
+        SELECT * FROM bill_items ORDER BY id
+      `).all(),
+
+      purchases: db.prepare(`
+        SELECT * FROM purchases ORDER BY id
+      `).all()
+    };
+
+    const snapshotFile = path.join(
+      __dirname,
+      'backups',
+      'git-data-snapshot.json'
+    );
+
+    const currentSnapshot = JSON.stringify(currentData);
+
+    // Read the previous successful snapshot
+    let previousSnapshot = null;
+
+    if (fs.existsSync(snapshotFile)) {
+      previousSnapshot = fs.readFileSync(
+        snapshotFile,
+        'utf8'
+      );
+    }
+
+    console.log(
+      `[CHECK] Bills: ${currentData.bills.length}`
+    );
+
+    console.log(
+      `[CHECK] Bill items: ${currentData.bill_items.length}`
+    );
+
+    console.log(
+      `[CHECK] Purchases: ${currentData.purchases.length}`
+    );
+
+    // No previous snapshot: establish a baseline and skip Git
+    if (previousSnapshot === null) {
+      fs.writeFileSync(
+        snapshotFile,
+        currentSnapshot
+      );
+
+      console.log(
+        '[SKIP] No previous snapshot exists. Baseline created; Git was not run.'
+      );
+
+      console.log('====================================\n');
+      return;
+    }
+
+    // No changes to business data: skip every Git operation
+    if (currentSnapshot === previousSnapshot) {
+      console.log(
+        '[SKIP] No changes detected in bills, bill items, or purchases.'
+      );
+
+      console.log('[SKIP] No git add, commit, or push performed.');
+      console.log('====================================\n');
+      return;
+    }
+
+    console.log(
+      '[CHANGE] Bills or purchases data has changed.'
+    );
+
+    // Generate the compressed backup using your existing helper
+    const backup = {
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      reason: 'business-data-changed',
+      totalBills: currentData.bills.length,
+      totalPurchases: currentData.purchases.length,
+      bills: db.prepare(
+        'SELECT * FROM bills ORDER BY id'
+      ).all().map(buildBill),
+      purchases: currentData.purchases
+    };
+
+    const saved = saveBackupToFolder(backup);
+
+    console.log(
+      `[BACKUP] Updated ${saved.filename}`
+    );
+
+    const backupFile = path.join(
+      __dirname,
+      'backups',
+      'latestBackup.json.gz'
+    );
+
+    // Stage only the generated backup
     execFileSync(
       'git',
-      ['add', '--', 'backups/latestBackup.json.gz'],
+      ['add', '--', backupFile],
       {
         cwd: __dirname,
         stdio: 'inherit'
       }
     );
 
+    console.log('[GIT] Backup file staged.');
+
+    // Skip commit/push if the backup content is identical
+    try {
+      execFileSync(
+        'git',
+        ['diff', '--cached', '--quiet', '--', 'backups/latestBackup.json.gz'],
+        {
+          cwd: __dirname,
+          stdio: 'ignore'
+        }
+      );
+
+      console.log(
+        '[SKIP] Backup file has no staged changes. No commit or push.'
+      );
+
+      // Update snapshot because business data has been checked
+      fs.writeFileSync(snapshotFile, currentSnapshot);
+
+      console.log('====================================\n');
+      return;
+    } catch (err) {
+      if (err.status !== 1) {
+        throw err;
+      }
+    }
+
+    // Commit only the backup file, not unrelated staged changes
     execFileSync(
       'git',
-      ['commit', '-m', `Backup ${new Date().toISOString()}`],
+      [
+        'commit',
+        '-m',
+        `Business data backup ${new Date().toISOString()}`,
+        '--',
+        'backups/latestBackup.json.gz'
+      ],
       {
         cwd: __dirname,
         stdio: 'inherit'
       }
     );
 
+    console.log('[GIT] Backup committed.');
+
+    // Push only after the commit succeeds
     execFileSync(
       'git',
       ['push', 'origin', 'main'],
@@ -941,9 +1082,20 @@ function gitBackup() {
       }
     );
 
-    console.log('Backup pushed successfully.');
+    console.log('[GIT] Push to origin/main successful.');
+
+    // Save the snapshot only after the push succeeds
+    fs.writeFileSync(snapshotFile, currentSnapshot);
+
+    console.log('[SUCCESS] Business data backup completed.');
+    console.log('====================================\n');
+
   } catch (err) {
-    console.error('Git backup failed:', err.message);
+    console.error('[GIT ERROR]', err.message);
+    console.log(
+      '[INFO] Snapshot was not advanced after a failed Git operation.'
+    );
+    console.log('====================================\n');
   }
 }
 

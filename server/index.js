@@ -640,6 +640,7 @@ app.delete('/api/purchases/:id', (req, res) => {
 // ===== Report API =====
 app.get('/api/report', (req, res) => {
   const { year, month } = req.query;
+  const supplier = String(req.query.supplier ?? '').trim();
 
   // Support both the new and old query parameter names
   const excludeInvoices =
@@ -660,7 +661,7 @@ app.get('/api/report', (req, res) => {
     SELECT
       billNumber AS invoiceNo,
       billDate AS invoiceDate,
-      buyerName AS name,
+      supplierName AS name,
       buyerGstNo AS gstNo,
       totalAmount AS taxableAmount,
       totalGst,
@@ -694,6 +695,13 @@ app.get('/api/report', (req, res) => {
 
     salesQuery += ` AND ${conditions.join(' AND ')}`;
     salesParams.push(...keywords);
+  }
+  if (supplier) {
+    salesQuery += `
+    AND LOWER(TRIM(COALESCE(supplierName, ''))) =
+        LOWER(TRIM(?))
+  `;
+    salesParams.push(supplier);
   }
 
   salesQuery += ` ORDER BY billDate DESC`;
@@ -831,7 +839,7 @@ app.get('/api/report', (req, res) => {
   });
 });
 
- 
+
 
 // ===== Backup Helper =====
 function saveBackupToFolder(backupData) {
@@ -885,7 +893,7 @@ app.get('/api/backup/files', (req, res) => {
         const data = JSON.parse(fs.readFileSync(path.join(BACKUP_DIR, f), 'utf8'));
         billCount = data.totalBills || data.bills?.length || 0;
         purchaseCount = data.totalPurchases || data.purchases?.length || 0;
-      } catch {}
+      } catch { }
       return { filename: f, size: stat.size, createdAt: stat.mtime.toISOString(), billCount, purchaseCount };
     })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

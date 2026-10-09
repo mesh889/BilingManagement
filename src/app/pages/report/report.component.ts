@@ -27,10 +27,7 @@ export class ReportComponent implements OnInit {
   fromDate = '';
   toDate = '';
 
-  excludeInvoiceKeywords = true;
-
-  // Comma-separated keywords
-  invoiceKeywords = 'proforma, quotation';
+ 
   excludeInvoices: boolean = true;
 excludeKeywords: string = 'proforma,quotation';
 

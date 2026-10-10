@@ -51,28 +51,28 @@
       <div class="card-body">
         <div class="mb-3 position-relative">
           <label class="form-label small fw-semibold">Name (as in GST) <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" placeholder="Start typing buyer name..."
-                 [(ngModel)]="buyer.name" (ngModelChange)="onBuyerNameInput()" (blur)="hideBuyerSuggestions()">
+          <input type="text" class="form-control" placeholder="Start typing buyer name..." [(ngModel)]="buyer.name"
+            (ngModelChange)="onBuyerNameInput()" (blur)="hideBuyerSuggestions()">
           @if (showBuyerSuggestions && buyerSuggestions.length > 0) {
-            <div class="autocomplete-dropdown">
-              @for (b of buyerSuggestions; track b.name) {
-                <div class="autocomplete-item" (mousedown)="selectBuyer(b)">
-                  <div class="fw-semibold">{{ b.name }}</div>
-                  <small class="text-muted">GST: {{ b.gstNo }} &bull; PAN: {{ b.pan }} &bull; Ph: {{ b.phone }}</small>
-                </div>
-              }
+          <div class="autocomplete-dropdown">
+            @for (b of buyerSuggestions; track b.name) {
+            <div class="autocomplete-item" (mousedown)="selectBuyer(b)">
+              <div class="fw-semibold">{{ b.name }}</div>
+              <small class="text-muted">GST: {{ b.gstNo }} &bull; PAN: {{ b.pan }} &bull; Ph: {{ b.phone }}</small>
             </div>
+            }
+          </div>
           }
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">GST Number</label>
-          <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15"
-                 [(ngModel)]="buyer.gstNo" style="text-transform: uppercase;">
+          <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15" [(ngModel)]="buyer.gstNo"
+            style="text-transform: uppercase;">
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">PAN Number</label>
-          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10"
-                 [(ngModel)]="buyer.pan" style="text-transform: uppercase;">
+          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10" [(ngModel)]="buyer.pan"
+            style="text-transform: uppercase;">
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">Address</label>
@@ -99,27 +99,27 @@
         <div class="mb-3 position-relative">
           <label class="form-label small fw-semibold">Name (as in GST) <span class="text-danger">*</span></label>
           <input type="text" class="form-control" placeholder="Start typing supplier name..."
-                 [(ngModel)]="supplier.name" (ngModelChange)="onSupplierNameInput()" (blur)="hideSupplierSuggestions()">
+            [(ngModel)]="supplier.name" (ngModelChange)="onSupplierNameInput()" (blur)="hideSupplierSuggestions()">
           @if (showSupplierSuggestions && supplierSuggestions.length > 0) {
-            <div class="autocomplete-dropdown">
-              @for (s of supplierSuggestions; track s.name) {
-                <div class="autocomplete-item" (mousedown)="selectSupplier(s)">
-                  <div class="fw-semibold">{{ s.name }}</div>
-                  <small class="text-muted">GST: {{ s.gstNo }} &bull; PAN: {{ s.pan }} &bull; Ph: {{ s.phone }}</small>
-                </div>
-              }
+          <div class="autocomplete-dropdown">
+            @for (s of supplierSuggestions; track s.name) {
+            <div class="autocomplete-item" (mousedown)="selectSupplier(s)">
+              <div class="fw-semibold">{{ s.name }}</div>
+              <small class="text-muted">GST: {{ s.gstNo }} &bull; PAN: {{ s.pan }} &bull; Ph: {{ s.phone }}</small>
             </div>
+            }
+          </div>
           }
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">GST Number</label>
           <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15"
-                 [(ngModel)]="supplier.gstNo" style="text-transform: uppercase;">
+            [(ngModel)]="supplier.gstNo" style="text-transform: uppercase;">
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">PAN Number</label>
-          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10"
-                 [(ngModel)]="supplier.pan" style="text-transform: uppercase;">
+          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10" [(ngModel)]="supplier.pan"
+            style="text-transform: uppercase;">
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">Address</label>
@@ -129,7 +129,8 @@
           <label class="form-label small fw-semibold">Phone Number</label>
           <div class="input-group">
             <span class="input-group-text">+91</span>
-            <input type="text" class="form-control" placeholder="9876543210" maxlength="10" [(ngModel)]="supplier.phone">
+            <input type="text" class="form-control" placeholder="9876543210" maxlength="10"
+              [(ngModel)]="supplier.phone">
           </div>
         </div>
       </div>
@@ -137,7 +138,7 @@
   </div>
 </div>
 
- 
+
 <!-- ========== ITEMS TABLE ========== -->
 <div class="card mb-4">
   <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
@@ -184,64 +185,44 @@
         <tbody>
           @for (item of items; track item.srNo) {
 
-            <tr [class.table-success]="item.description && item.quantity && item.rate">
+          <tr [class.table-success]="item.description && item.quantity && item.rate">
 
-              <!-- Sr No -->
-              <td class="text-center text-muted fw-semibold">
-                {{ item.srNo }}
-              </td>
+            <!-- Sr No -->
+            <td class="text-center text-muted fw-semibold">
+              {{ item.srNo }}
+            </td>
 
-              <!-- Description -->
-              <td>
-                <input
-                  type="text"
-                  class="form-control form-control-sm border-0 bg-transparent"
-                  placeholder="Enter description"
-                  [(ngModel)]="item.description">
-              </td>
+            <!-- Description -->
+            <td>
+              <input type="text" class="form-control form-control-sm border-0 bg-transparent"
+                placeholder="Enter description" [(ngModel)]="item.description">
+            </td>
 
-              <!-- HSN/SAC -->
-              <td>
-                <input
-                  type="text"
-                  class="form-control form-control-sm border-0 bg-transparent text-center"
-                  placeholder="HSN/SAC"
-                  [(ngModel)]="item.hsnSac">
-              </td>
+            <!-- HSN/SAC -->
+            <td>
+              <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center"
+                placeholder="HSN/SAC" [(ngModel)]="item.hsnSac">
+            </td>
 
-              <!-- Unit -->
-              <td>
-                <input
-                  type="number"
-                  class="form-control form-control-sm border-0 bg-transparent text-center"
-                  placeholder="0"
-                  [(ngModel)]="item.unit"
-                  min="0">
-              </td>
+            <!-- Unit -->
+            <td>
+              <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                placeholder="0" [(ngModel)]="item.unit" min="0">
+            </td>
 
-              <!-- Quantity -->
-              <td>
-                <input
-                  type="number"
-                  class="form-control form-control-sm border-0 bg-transparent text-center"
-                  placeholder="0"
-                  [(ngModel)]="item.quantity"
-                  (ngModelChange)="calcAmount(item)"
-                  min="0">
-              </td>
+            <!-- Quantity -->
+            <td>
+              <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                placeholder="0" [(ngModel)]="item.quantity" (ngModelChange)="calcAmount(item)" min="0">
+            </td>
 
-              <!-- Rate -->
-              <td>
-                <input
-                  type="number"
-                  class="form-control form-control-sm border-0 bg-transparent text-end"
-                  placeholder="0.00"
-                  [(ngModel)]="item.rate"
-                  (ngModelChange)="calcAmount(item)"
-                  min="0">
-              </td>
+            <!-- Rate -->
+            <td>
+              <input type="number" class="form-control form-control-sm border-0 bg-transparent text-end"
+                placeholder="0.00" [(ngModel)]="item.rate" (ngModelChange)="calcAmount(item)" min="0">
+            </td>
 
-              <!-- Discount column hidden
+            <!-- Discount column hidden
               <td>
                 <input
                   type="number"
@@ -254,87 +235,75 @@
               </td>
               -->
 
-              <!-- TAXABLE AMOUNT -->
-              <td class="text-end fw-semibold pe-3">
-                @if (item.quantity && item.rate) {
-                  &#8377;
-                  {{ getItemTaxableAmount(item) | number:'1.2-2' }}
-                } @else {
-                  0.00
-                }
-              </td>
+            <!-- TAXABLE AMOUNT -->
+            <td class="text-end fw-semibold pe-3">
+              @if (item.quantity && item.rate) {
+              &#8377;
+              {{ getItemTaxableAmount(item) | number:'1.2-2' }}
+              } @else {
+              0.00
+              }
+            </td>
 
-              <!-- CGST -->
-              <td>
-                <input
-                  type="number"
-                  class="form-control form-control-sm border-0 bg-transparent text-center"
-                  placeholder="0"
-                  [(ngModel)]="item.cgstPercent"
-                  (ngModelChange)="calcAmount(item)"
-                  min="0">
-              </td>
+            <!-- CGST -->
+            <td>
+              <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                placeholder="0" [(ngModel)]="item.cgstPercent" (ngModelChange)="calcAmount(item)" min="0">
+            </td>
 
-              <!-- SGST -->
-              <td>
-                <input
-                  type="number"
-                  class="form-control form-control-sm border-0 bg-transparent text-center"
-                  placeholder="0"
-                  [(ngModel)]="item.sgstPercent"
-                  (ngModelChange)="calcAmount(item)"
-                  min="0">
-              </td>
+            <!-- SGST -->
+            <td>
+              <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center"
+                placeholder="0" [(ngModel)]="item.sgstPercent" (ngModelChange)="calcAmount(item)" min="0">
+            </td>
 
-              <!-- FINAL AMOUNT -->
-              <td
-                class="text-end fw-bold pe-3"
-                [class.text-success]="item.amount > 0">
+            <!-- FINAL AMOUNT -->
+            <td class="text-end fw-bold pe-3" [class.text-success]="item.amount > 0">
 
-                &#8377;
-                {{ item.amount | number:'1.2-2' }}
+              &#8377;
+              {{ item.amount | number:'1.2-2' }}
 
-              </td>
+            </td>
 
-            </tr>
+          </tr>
           }
         </tbody>
 
-       
 
-<tfoot class="table-dark">
-  <tr>
 
-    <!-- Total label -->
-    <td colspan="4" class="text-end fw-bold pe-3">
-      Total:
-    </td>
+        <tfoot class="table-dark">
+          <tr>
 
-    <!-- TOTAL QUANTITY below Qty column -->
-    <td class="text-center fw-bold">
-      {{ totalQuantity }}
-    </td>
+            <!-- Total label -->
+            <td colspan="4" class="text-end fw-bold pe-3">
+              Total:
+            </td>
 
-    <!-- Empty Rate column -->
-    <td></td>
+            <!-- TOTAL QUANTITY below Qty column -->
+            <td class="text-center fw-bold">
+              {{ totalQuantity }}
+            </td>
 
-    <!-- TOTAL TAXABLE -->
-    <td class="text-end fw-bold pe-3">
-      &#8377;
-      {{ totalTaxableAmount | number:'1.2-2' }}
-    </td>
+            <!-- Empty Rate column -->
+            <td></td>
 
-    <!-- Empty CGST and SGST columns -->
-    <td colspan="2"></td>
+            <!-- TOTAL TAXABLE -->
+            <td class="text-end fw-bold pe-3">
+              &#8377;
+              {{ totalTaxableAmount | number:'1.2-2' }}
+            </td>
 
-    <!-- GRAND ITEM TOTAL -->
-    <td class="text-end fw-bold pe-3">
-      &#8377;
-      {{ totalItemsAmount | number:'1.2-2' }}
-    </td>
+            <!-- Empty CGST and SGST columns -->
+            <td colspan="2"></td>
 
-  </tr>
-</tfoot>
+            <!-- GRAND ITEM TOTAL -->
+            <td class="text-end fw-bold pe-3">
+              &#8377;
+              {{ totalItemsAmount | number:'1.2-2' }}
+            </td>
+
+          </tr>
+        </tfoot>
 
 
 
@@ -347,73 +316,73 @@
 
 <!-- ========== AMOUNT IN WORDS ========== -->
 @if (filledItems.length > 0) {
-  <div class="card mb-4 border-start border-4 border-primary">
-    <div class="card-body py-3">
-      <div class="row">
-        <div class="col-12 mb-2">
-          <span class="small fw-semibold text-muted">GST Chargeable (in words):</span>
-          <div class="fw-semibold text-dark">{{ gstInWords }}</div>
-        </div>
-        <div class="col-12">
-          <span class="small fw-semibold text-muted">Total Amount (in words):</span>
-          <div class="fw-bold text-primary fs-6">{{ grandTotalInWords }}</div>
-        </div>
+<div class="card mb-4 border-start border-4 border-primary">
+  <div class="card-body py-3">
+    <div class="row">
+      <div class="col-12 mb-2">
+        <span class="small fw-semibold text-muted">GST Chargeable (in words):</span>
+        <div class="fw-semibold text-dark">{{ gstInWords }}</div>
+      </div>
+      <div class="col-12">
+        <span class="small fw-semibold text-muted">Total Amount (in words):</span>
+        <div class="fw-bold text-primary fs-6">{{ grandTotalInWords }}</div>
       </div>
     </div>
   </div>
+</div>
 }
 
 <!-- ========== GST SUMMARY TABLE ========== -->
 @if (gstSummary.length > 0) {
-  <div class="card mb-4">
-    <div class="card-header bg-warning bg-opacity-75 text-dark py-2">
-      <i class="bi bi-calculator me-2"></i>GST Summary (Tax Breakup by HSN/SAC)
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-bordered table-sm mb-0">
-          <thead class="table-light">
-            <tr class="text-center">
-              <th rowspan="2" class="align-middle">HSN/SAC</th>
-              <th rowspan="2" class="align-middle">Taxable Value (&#8377;)</th>
-              <th colspan="2" class="bg-info bg-opacity-10">CGST</th>
-              <th colspan="2" class="bg-info bg-opacity-10">SGST</th>
-              <th rowspan="2" class="align-middle">Total Tax (&#8377;)</th>
-            </tr>
-            <tr class="text-center">
-              <th>Rate %</th>
-              <th>Amount (&#8377;)</th>
-              <th>Rate %</th>
-              <th>Amount (&#8377;)</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of gstSummary; track row.hsnSac) {
-              <tr class="text-center">
-                <td class="fw-semibold">{{ row.hsnSac }}</td>
-                <td class="text-end">{{ row.taxableValue | number:'1.2-2' }}</td>
-                <td>{{ row.cgstRate }}%</td>
-                <td class="text-end">{{ row.cgstAmount | number:'1.2-2' }}</td>
-                <td>{{ row.sgstRate }}%</td>
-                <td class="text-end">{{ row.sgstAmount | number:'1.2-2' }}</td>
-                <td class="text-end fw-bold">{{ row.totalTax | number:'1.2-2' }}</td>
-              </tr>
-            }
-          </tbody>
-          <tfoot class="table-secondary">
-            <tr class="text-center fw-bold">
-              <td colspan="2" class="text-end">Total</td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td class="text-end">{{ totalGst | number:'1.2-2' }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+<div class="card mb-4">
+  <div class="card-header bg-warning bg-opacity-75 text-dark py-2">
+    <i class="bi bi-calculator me-2"></i>GST Summary (Tax Breakup by HSN/SAC)
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm mb-0">
+        <thead class="table-light">
+          <tr class="text-center">
+            <th rowspan="2" class="align-middle">HSN/SAC</th>
+            <th rowspan="2" class="align-middle">Taxable Value (&#8377;)</th>
+            <th colspan="2" class="bg-info bg-opacity-10">CGST</th>
+            <th colspan="2" class="bg-info bg-opacity-10">SGST</th>
+            <th rowspan="2" class="align-middle">Total Tax (&#8377;)</th>
+          </tr>
+          <tr class="text-center">
+            <th>Rate %</th>
+            <th>Amount (&#8377;)</th>
+            <th>Rate %</th>
+            <th>Amount (&#8377;)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of gstSummary; track row.hsnSac) {
+          <tr class="text-center">
+            <td class="fw-semibold">{{ row.hsnSac }}</td>
+            <td class="text-end">{{ row.taxableValue | number:'1.2-2' }}</td>
+            <td>{{ row.cgstRate }}%</td>
+            <td class="text-end">{{ row.cgstAmount | number:'1.2-2' }}</td>
+            <td>{{ row.sgstRate }}%</td>
+            <td class="text-end">{{ row.sgstAmount | number:'1.2-2' }}</td>
+            <td class="text-end fw-bold">{{ row.totalTax | number:'1.2-2' }}</td>
+          </tr>
+          }
+        </tbody>
+        <tfoot class="table-secondary">
+          <tr class="text-center fw-bold">
+            <td colspan="2" class="text-end">Total</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="text-end">{{ totalGst | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   </div>
+</div>
 }
 
 <!-- ========== BANK DETAILS & PAYMENT SUMMARY (side by side) ========== -->
@@ -427,16 +396,18 @@
       <div class="card-body">
         <div class="mb-3">
           <label class="form-label small fw-semibold">Bank Name</label>
-          <input type="text" class="form-control" placeholder="e.g. State Bank of India" [(ngModel)]="bankDetails.bankName">
+          <input type="text" class="form-control" placeholder="e.g. State Bank of India"
+            [(ngModel)]="bankDetails.bankName">
         </div>
         <div class="mb-3">
           <label class="form-label small fw-semibold">Account Number</label>
-          <input type="text" class="form-control" placeholder="Enter account number" [(ngModel)]="bankDetails.accountNumber">
+          <input type="text" class="form-control" placeholder="Enter account number"
+            [(ngModel)]="bankDetails.accountNumber">
         </div>
         <div>
           <label class="form-label small fw-semibold">IFSC Code</label>
           <input type="text" class="form-control" placeholder="e.g. SBIN0001234" maxlength="11"
-                 [(ngModel)]="bankDetails.ifscCode" style="text-transform: uppercase;">
+            [(ngModel)]="bankDetails.ifscCode" style="text-transform: uppercase;">
         </div>
       </div>
     </div>

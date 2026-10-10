@@ -247,12 +247,12 @@ export class BillFormComponent implements OnInit {
     return +this.filledItems.reduce((s, i) => s + i.amount, 0).toFixed(2);
   }
 
- get totalQuantity(): number {
-  return this.items.reduce(
-    (total, item) => total + (Number(item.quantity) || 0),
-    0
-  );
-}
+  get totalQuantity(): string {
+    return this.items.reduce(
+      (total, item) => total + (Number(item.quantity) || 0),
+      0
+    ).toFixed(2);
+  }
 
   saveBill() {
     if (!this.buyer.name || !this.supplier.name) {

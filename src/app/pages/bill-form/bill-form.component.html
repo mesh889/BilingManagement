@@ -300,35 +300,43 @@
           }
         </tbody>
 
-        <tfoot class="table-dark">
-          <tr>
+       
 
-            <td colspan="3" class="text-end fw-bold pe-3">
-              Total:
-            </td>
+<tfoot class="table-dark">
+  <tr>
 
-            <td class="text-center fw-bold">
-              {{ totalUnits }}
-            </td>
+    <!-- Total label -->
+    <td colspan="4" class="text-end fw-bold pe-3">
+      Total:
+    </td>
 
-            <td colspan="2"></td>
+    <!-- TOTAL QUANTITY below Qty column -->
+    <td class="text-center fw-bold">
+      {{ totalQuantity }}
+    </td>
 
-            <!-- TOTAL TAXABLE -->
-            <td class="text-end fw-bold pe-3">
-              &#8377;
-              {{ totalTaxableAmount | number:'1.2-2' }}
-            </td>
+    <!-- Empty Rate column -->
+    <td></td>
 
-            <td colspan="2"></td>
+    <!-- TOTAL TAXABLE -->
+    <td class="text-end fw-bold pe-3">
+      &#8377;
+      {{ totalTaxableAmount | number:'1.2-2' }}
+    </td>
 
-            <!-- GRAND ITEM TOTAL -->
-            <td class="text-end fw-bold pe-3">
-              &#8377;
-              {{ totalItemsAmount | number:'1.2-2' }}
-            </td>
+    <!-- Empty CGST and SGST columns -->
+    <td colspan="2"></td>
 
-          </tr>
-        </tfoot>
+    <!-- GRAND ITEM TOTAL -->
+    <td class="text-end fw-bold pe-3">
+      &#8377;
+      {{ totalItemsAmount | number:'1.2-2' }}
+    </td>
+
+  </tr>
+</tfoot>
+
+
 
       </table>
     </div>

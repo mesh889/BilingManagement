@@ -694,7 +694,7 @@ app.get('/api/report', (req, res) => {
 
       -- Total quantity of all items in each bill
       COALESCE((
-        SELECT SUM(COALESCE(bi.quantity, 0))
+        SELECT SUM(COALESCE(bi.unit, 0))
         FROM bill_items bi
         WHERE bi.billId = b.id
       ), 0) AS totalQuantity,

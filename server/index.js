@@ -638,11 +638,12 @@ app.delete('/api/purchases/:id', (req, res) => {
 
 
 // ===== Report API =====
+// ===== Report API =====
 app.get('/api/report', (req, res) => {
   const { year, month } = req.query;
   const supplier = String(req.query.supplier ?? '').trim();
 
-  // Support both the new and old query parameter names
+  // Support both new and old query parameter names
   const excludeInvoices =
     String(req.query.excludeInvoices ?? req.query.exclude ?? 'false')
       .toLowerCase() === 'true';
@@ -656,62 +657,73 @@ app.get('/api/report', (req, res) => {
     .map(k => k.trim().toLowerCase())
     .filter(Boolean);
 
-  // Sales from bills
-  // Updated to include buyer, supplier, and bank details
+  // ==========================================
+  // SALES QUERY - Includes total quantity
+  // ==========================================
   let salesQuery = `
     SELECT
-      id,
-      billNumber AS invoiceNo,
-      billDate AS invoiceDate,
+      b.id,
+      b.billNumber AS invoiceNo,
+      b.billDate AS invoiceDate,
 
       -- Buyer details
-      buyerName,
-      buyerGstNo,
-      buyerPan,
-      buyerAddress,
-      buyerPhone,
+      b.buyerName,
+      b.buyerGstNo,
+      b.buyerPan,
+      b.buyerAddress,
+      b.buyerPhone,
 
       -- Supplier details
-      supplierName,
-      supplierGstNo,
-      supplierPan,
-      supplierAddress,
-      supplierPhone,
+      b.supplierName,
+      b.supplierGstNo,
+      b.supplierPan,
+      b.supplierAddress,
+      b.supplierPhone,
 
       -- Bank details
-      bankName,
-      accountNumber,
-      ifscCode,
+      b.bankName,
+      b.accountNumber,
+      b.ifscCode,
 
       -- Amount details
-      totalAmount AS taxableAmount,
-      totalGst,
-      grandTotal,
-      grandTotal AS totalWithTax,
-      totalAmount AS totalWithoutTax,
+      b.totalAmount AS taxableAmount,
+      b.totalGst,
+      b.grandTotal,
+      b.grandTotal AS totalWithTax,
+      b.totalAmount AS totalWithoutTax,
 
-      substr(billDate, 1, 7) AS monthKey
-    FROM bills
+      -- Total quantity of all items in each bill
+      COALESCE((
+        SELECT SUM(COALESCE(bi.quantity, 0))
+        FROM bill_items bi
+        WHERE bi.billId = b.id
+      ), 0) AS totalQuantity,
+
+      substr(b.billDate, 1, 7) AS monthKey
+
+    FROM bills b
     WHERE 1=1
   `;
 
   const salesParams = [];
 
+  // Filter by year
   if (year) {
-    salesQuery += ` AND substr(billDate, 1, 4) = ?`;
+    salesQuery += ` AND substr(b.billDate, 1, 4) = ?`;
     salesParams.push(year);
   }
 
+  // Filter by month
   if (month) {
-    salesQuery += ` AND substr(billDate, 6, 2) = ?`;
+    salesQuery += ` AND substr(b.billDate, 6, 2) = ?`;
     salesParams.push(String(month).padStart(2, '0'));
   }
 
-  // Exclude invoice numbers containing ANY keyword
+  // Exclude invoices containing any specified keyword
   if (excludeInvoices && keywords.length > 0) {
     const conditions = keywords.map(() => `
       instr(
-        lower(trim(COALESCE(billNumber, ''))),
+        lower(trim(COALESCE(b.billNumber, ''))),
         ?
       ) = 0
     `);
@@ -723,24 +735,30 @@ app.get('/api/report', (req, res) => {
   // Filter sales by supplier name
   if (supplier) {
     salesQuery += `
-      AND LOWER(TRIM(COALESCE(supplierName, ''))) =
+      AND LOWER(TRIM(COALESCE(b.supplierName, ''))) =
           LOWER(TRIM(?))
     `;
     salesParams.push(supplier);
   }
 
-  salesQuery += ` ORDER BY billDate DESC`;
+  salesQuery += ` ORDER BY b.billDate DESC`;
 
   const sales = db.prepare(salesQuery).all(...salesParams);
 
-  // Calculate CGST/SGST for sales
+  // Calculate CGST and SGST for sales
   sales.forEach(s => {
     const gst = Number(s.totalGst || 0);
+
     s.cgst = +(gst / 2).toFixed(2);
     s.sgst = +(gst / 2).toFixed(2);
+
+    // Ensure total quantity is numeric
+    s.totalQuantity = Number(s.totalQuantity || 0);
   });
 
-  // Purchases (unchanged)
+  // ==========================================
+  // PURCHASES QUERY - Unchanged
+  // ==========================================
   let purchaseQuery = `
     SELECT
       invoiceNo,
@@ -764,17 +782,19 @@ app.get('/api/report', (req, res) => {
 
   const purchaseParams = [];
 
+  // Filter purchases by year
   if (year) {
     purchaseQuery += ` AND substr(invoiceDate, 1, 4) = ?`;
     purchaseParams.push(year);
   }
 
+  // Filter purchases by month
   if (month) {
     purchaseQuery += ` AND substr(invoiceDate, 6, 2) = ?`;
     purchaseParams.push(String(month).padStart(2, '0'));
   }
 
-  // Apply the same keyword filter to purchases
+  // Apply invoice keyword exclusion to purchases
   if (excludeInvoices && keywords.length > 0) {
     const conditions = keywords.map(() => `
       instr(
@@ -793,26 +813,31 @@ app.get('/api/report', (req, res) => {
     .prepare(purchaseQuery)
     .all(...purchaseParams);
 
-  // Calculate CGST/SGST for purchases
+  // Calculate CGST and SGST for purchases
   purchases.forEach(p => {
     p.cgst = Number(p.cgstAmount || 0);
     p.sgst = Number(p.sgstAmount || 0);
   });
 
-  // Monthly summary, calculated AFTER filtering
+  // ==========================================
+  // MONTHLY SUMMARY - Includes sales quantity
+  // ==========================================
   const monthMap = {};
 
   const addToMonth = (key, type, row) => {
     if (!monthMap[key]) {
       monthMap[key] = {
         month: key,
+
         sales: {
           count: 0,
+          totalQuantity: 0,
           cgst: 0,
           sgst: 0,
           totalWithTax: 0,
           totalWithoutTax: 0
         },
+
         purchases: {
           count: 0,
           cgst: 0,
@@ -825,8 +850,17 @@ app.get('/api/report', (req, res) => {
 
     const m = monthMap[key][type];
 
+    // Invoice count
     m.count++;
 
+    // Total sales quantity
+    if (type === 'sales') {
+      m.totalQuantity = +(
+        m.totalQuantity + Number(row.totalQuantity || 0)
+      ).toFixed(2);
+    }
+
+    // GST totals
     m.cgst = +(
       m.cgst + Number(row.cgst || 0)
     ).toFixed(2);
@@ -835,6 +869,7 @@ app.get('/api/report', (req, res) => {
       m.sgst + Number(row.sgst || 0)
     ).toFixed(2);
 
+    // Amount totals
     m.totalWithTax = +(
       m.totalWithTax + Number(row.totalWithTax || 0)
     ).toFixed(2);
@@ -844,13 +879,21 @@ app.get('/api/report', (req, res) => {
     ).toFixed(2);
   };
 
-  sales.forEach(s => addToMonth(s.monthKey, 'sales', s));
-  purchases.forEach(p => addToMonth(p.monthKey, 'purchases', p));
+  // Build monthly summaries after applying filters
+  sales.forEach(s => {
+    addToMonth(s.monthKey, 'sales', s);
+  });
+
+  purchases.forEach(p => {
+    addToMonth(p.monthKey, 'purchases', p);
+  });
 
   const monthlySummary = Object.values(monthMap)
     .sort((a, b) => b.month.localeCompare(a.month));
 
-  // Available years (unchanged)
+  // ==========================================
+  // AVAILABLE YEARS
+  // ==========================================
   const yearsFromSales = db.prepare(`
     SELECT DISTINCT substr(billDate, 1, 4) AS y
     FROM bills
@@ -862,9 +905,15 @@ app.get('/api/report', (req, res) => {
   `).all().map(r => r.y);
 
   const availableYears = [
-    ...new Set([...yearsFromSales, ...yearsFromPurchases])
+    ...new Set([
+      ...yearsFromSales,
+      ...yearsFromPurchases
+    ])
   ].sort().reverse();
 
+  // ==========================================
+  // FINAL RESPONSE
+  // ==========================================
   res.json({
     sales,
     purchases,

@@ -307,49 +307,54 @@ loadReport(): void {
   // SALES TOTALS
   // ============================================================
 
-  get salesTotals() {
+ get salesTotals() {
+  return {
+    totalQuantity:
+      +this.sales
+        .reduce(
+          (sum, row) =>
+            sum + Number(row.totalQuantity || 0),
+          0
+        )
+        .toFixed(2),
 
-    return {
+    cgst:
+      +this.sales
+        .reduce(
+          (sum, row) =>
+            sum + Number(row.cgst || 0),
+          0
+        )
+        .toFixed(2),
 
-      cgst:
-        +this.sales
-          .reduce(
-            (sum, row) =>
-              sum + Number(row.cgst || 0),
-            0
-          )
-          .toFixed(2),
+    sgst:
+      +this.sales
+        .reduce(
+          (sum, row) =>
+            sum + Number(row.sgst || 0),
+          0
+        )
+        .toFixed(2),
 
-      sgst:
-        +this.sales
-          .reduce(
-            (sum, row) =>
-              sum + Number(row.sgst || 0),
-            0
-          )
-          .toFixed(2),
+    withTax:
+      +this.sales
+        .reduce(
+          (sum, row) =>
+            sum + Number(row.totalWithTax || 0),
+          0
+        )
+        .toFixed(2),
 
-      withTax:
-        +this.sales
-          .reduce(
-            (sum, row) =>
-              sum + Number(row.totalWithTax || 0),
-            0
-          )
-          .toFixed(2),
-
-      withoutTax:
-        +this.sales
-          .reduce(
-            (sum, row) =>
-              sum + Number(row.totalWithoutTax || 0),
-            0
-          )
-          .toFixed(2)
-
-    };
-
-  }
+    withoutTax:
+      +this.sales
+        .reduce(
+          (sum, row) =>
+            sum + Number(row.totalWithoutTax || 0),
+          0
+        )
+        .toFixed(2)
+  };
+}
 
 
   // ============================================================

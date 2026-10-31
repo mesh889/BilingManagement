@@ -40,103 +40,267 @@
   </div>
 </div>
 
+
 <!-- ========== BUYER & SUPPLIER ========== -->
 <div class="row g-4 mb-4">
-  <!-- Buyer -->
+
+  <!-- BUYER -->
   <div class="col-md-6">
     <div class="card h-100">
+
       <div class="card-header bg-primary text-white py-2">
-        <i class="bi bi-person-fill me-2"></i>Buyer Details
-      </div>
-      <div class="card-body">
-        <div class="mb-3 position-relative">
-          <label class="form-label small fw-semibold">Name (as in GST) <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" placeholder="Start typing buyer name..." [(ngModel)]="buyer.name"
-            (ngModelChange)="onBuyerNameInput()" (blur)="hideBuyerSuggestions()">
-          @if (showBuyerSuggestions && buyerSuggestions.length > 0) {
-          <div class="autocomplete-dropdown">
-            @for (b of buyerSuggestions; track b.name) {
-            <div class="autocomplete-item" (mousedown)="selectBuyer(b)">
-              <div class="fw-semibold">{{ b.name }}</div>
-              <small class="text-muted">GST: {{ b.gstNo }} &bull; PAN: {{ b.pan }} &bull; Ph: {{ b.phone }}</small>
+
+        <button type="button"
+                class="btn btn-link text-white text-decoration-none p-0 w-100 text-start"
+                (click)="buyerCollapsed = !buyerCollapsed">
+
+          <div class="d-flex justify-content-between align-items-center">
+
+            <strong>
+              <i class="bi bi-person-fill me-2"></i>
+              Buyer Details
+
+              @if (buyerCollapsed) {
+                <span class="badge bg-light text-primary ms-2">
+                  Selected
+                </span>
+              }
+            </strong>
+
+            <i class="bi"
+               [class.bi-chevron-down]="buyerCollapsed"
+               [class.bi-chevron-up]="!buyerCollapsed">
+            </i>
+
+          </div>
+
+          @if (buyerCollapsed) {
+            <div class="small mt-2 fw-normal">
+              {{ buyer.name }} |
+              {{ buyer.address }} |
+              GSTIN: {{ buyer.gstNo }}
             </div>
+          }
+
+        </button>
+
+      </div>
+
+      @if (!buyerCollapsed) {
+
+        <div class="card-body">
+
+          <!-- Buyer Name -->
+          <div class="mb-3 position-relative">
+            <label class="form-label small fw-semibold">
+              Name (as in GST) <span class="text-danger">*</span>
+            </label>
+
+            <input type="text"
+                   class="form-control"
+                   placeholder="Start typing buyer name..."
+                   [(ngModel)]="buyer.name"
+                   (ngModelChange)="onBuyerNameInput()"
+                   (blur)="hideBuyerSuggestions()">
+
+            @if (showBuyerSuggestions && buyerSuggestions.length > 0) {
+              <div class="autocomplete-dropdown">
+                @for (b of buyerSuggestions; track b.name) {
+                  <div class="autocomplete-item"
+                       (mousedown)="selectBuyer(b)">
+                    <div class="fw-semibold">{{ b.name }}</div>
+                    <small class="text-muted">
+                      GST: {{ b.gstNo }} &bull;
+                      PAN: {{ b.pan }} &bull;
+                      Ph: {{ b.phone }}
+                    </small>
+                  </div>
+                }
+              </div>
             }
           </div>
-          }
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">GST Number</label>
-          <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15" [(ngModel)]="buyer.gstNo"
-            style="text-transform: uppercase;">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">PAN Number</label>
-          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10" [(ngModel)]="buyer.pan"
-            style="text-transform: uppercase;">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Address</label>
-          <textarea class="form-control" rows="2" placeholder="Full address" [(ngModel)]="buyer.address"></textarea>
-        </div>
-        <div>
-          <label class="form-label small fw-semibold">Phone Number</label>
-          <div class="input-group">
-            <span class="input-group-text">+91</span>
-            <input type="text" class="form-control" placeholder="9876543210" maxlength="10" [(ngModel)]="buyer.phone">
+
+          <!-- GST -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">GST Number</label>
+            <input type="text"
+                   class="form-control"
+                   placeholder="22ABCDE1234F1Z5"
+                   maxlength="15"
+                   [(ngModel)]="buyer.gstNo"
+                   style="text-transform: uppercase;">
           </div>
+
+          <!-- PAN -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">PAN Number</label>
+            <input type="text"
+                   class="form-control"
+                   placeholder="ABCDE1234F"
+                   maxlength="10"
+                   [(ngModel)]="buyer.pan"
+                   style="text-transform: uppercase;">
+          </div>
+
+          <!-- Address -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Address</label>
+            <textarea class="form-control"
+                      rows="2"
+                      placeholder="Full address"
+                      [(ngModel)]="buyer.address"></textarea>
+          </div>
+
+          <!-- Phone -->
+          <div>
+            <label class="form-label small fw-semibold">Phone Number</label>
+            <div class="input-group">
+              <span class="input-group-text">+91</span>
+              <input type="text"
+                     class="form-control"
+                     placeholder="9876543210"
+                     maxlength="10"
+                     [(ngModel)]="buyer.phone">
+            </div>
+          </div>
+
         </div>
-      </div>
+
+      }
+
     </div>
   </div>
 
-  <!-- Supplier -->
+
+  <!-- SUPPLIER -->
   <div class="col-md-6">
     <div class="card h-100">
+
       <div class="card-header bg-success text-white py-2">
-        <i class="bi bi-building me-2"></i>Supplier Details
-      </div>
-      <div class="card-body">
-        <div class="mb-3 position-relative">
-          <label class="form-label small fw-semibold">Name (as in GST) <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" placeholder="Start typing supplier name..."
-            [(ngModel)]="supplier.name" (ngModelChange)="onSupplierNameInput()" (blur)="hideSupplierSuggestions()">
-          @if (showSupplierSuggestions && supplierSuggestions.length > 0) {
-          <div class="autocomplete-dropdown">
-            @for (s of supplierSuggestions; track s.name) {
-            <div class="autocomplete-item" (mousedown)="selectSupplier(s)">
-              <div class="fw-semibold">{{ s.name }}</div>
-              <small class="text-muted">GST: {{ s.gstNo }} &bull; PAN: {{ s.pan }} &bull; Ph: {{ s.phone }}</small>
+
+        <button type="button"
+                class="btn btn-link text-white text-decoration-none p-0 w-100 text-start"
+                (click)="supplierCollapsed = !supplierCollapsed">
+
+          <div class="d-flex justify-content-between align-items-center">
+
+            <strong>
+              <i class="bi bi-building me-2"></i>
+              Supplier Details
+
+              @if (supplierCollapsed) {
+                <span class="badge bg-light text-success ms-2">
+                  Selected
+                </span>
+              }
+            </strong>
+
+            <i class="bi"
+               [class.bi-chevron-down]="supplierCollapsed"
+               [class.bi-chevron-up]="!supplierCollapsed">
+            </i>
+
+          </div>
+
+          @if (supplierCollapsed) {
+            <div class="small mt-2 fw-normal">
+              {{ supplier.name }} |
+              {{ supplier.address }} |
+              GSTIN: {{ supplier.gstNo }}
             </div>
+          }
+
+        </button>
+
+      </div>
+
+      @if (!supplierCollapsed) {
+
+        <div class="card-body">
+
+          <!-- Supplier Name -->
+          <div class="mb-3 position-relative">
+            <label class="form-label small fw-semibold">
+              Name (as in GST) <span class="text-danger">*</span>
+            </label>
+
+            <input type="text"
+                   class="form-control"
+                   placeholder="Start typing supplier name..."
+                   [(ngModel)]="supplier.name"
+                   (ngModelChange)="onSupplierNameInput()"
+                   (blur)="hideSupplierSuggestions()">
+
+            @if (showSupplierSuggestions && supplierSuggestions.length > 0) {
+              <div class="autocomplete-dropdown">
+                @for (s of supplierSuggestions; track s.name) {
+                  <div class="autocomplete-item"
+                       (mousedown)="selectSupplier(s)">
+                    <div class="fw-semibold">{{ s.name }}</div>
+                    <small class="text-muted">
+                      GST: {{ s.gstNo }} &bull;
+                      PAN: {{ s.pan }} &bull;
+                      Ph: {{ s.phone }}
+                    </small>
+                  </div>
+                }
+              </div>
             }
           </div>
-          }
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">GST Number</label>
-          <input type="text" class="form-control" placeholder="22ABCDE1234F1Z5" maxlength="15"
-            [(ngModel)]="supplier.gstNo" style="text-transform: uppercase;">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">PAN Number</label>
-          <input type="text" class="form-control" placeholder="ABCDE1234F" maxlength="10" [(ngModel)]="supplier.pan"
-            style="text-transform: uppercase;">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Address</label>
-          <textarea class="form-control" rows="2" placeholder="Full address" [(ngModel)]="supplier.address"></textarea>
-        </div>
-        <div>
-          <label class="form-label small fw-semibold">Phone Number</label>
-          <div class="input-group">
-            <span class="input-group-text">+91</span>
-            <input type="text" class="form-control" placeholder="9876543210" maxlength="10"
-              [(ngModel)]="supplier.phone">
+
+          <!-- GST -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">GST Number</label>
+            <input type="text"
+                   class="form-control"
+                   placeholder="22ABCDE1234F1Z5"
+                   maxlength="15"
+                   [(ngModel)]="supplier.gstNo"
+                   style="text-transform: uppercase;">
           </div>
+
+          <!-- PAN -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">PAN Number</label>
+            <input type="text"
+                   class="form-control"
+                   placeholder="ABCDE1234F"
+                   maxlength="10"
+                   [(ngModel)]="supplier.pan"
+                   style="text-transform: uppercase;">
+          </div>
+
+          <!-- Address -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Address</label>
+            <textarea class="form-control"
+                      rows="2"
+                      placeholder="Full address"
+                      [(ngModel)]="supplier.address"></textarea>
+          </div>
+
+          <!-- Phone -->
+          <div>
+            <label class="form-label small fw-semibold">Phone Number</label>
+            <div class="input-group">
+              <span class="input-group-text">+91</span>
+              <input type="text"
+                     class="form-control"
+                     placeholder="9876543210"
+                     maxlength="10"
+                     [(ngModel)]="supplier.phone">
+            </div>
+          </div>
+
         </div>
-      </div>
+
+      }
+
     </div>
   </div>
+
 </div>
+
 
 
 <!-- ========== ITEMS TABLE ========== -->
@@ -148,7 +312,7 @@
     </span>
   </div>
 
-  <div class="card-body p-0">
+  <div class="card-body p-0" (focusin)="collapsePartyDetails()">
     <div class="table-responsive">
       <table class="table table-bordered table-sm mb-0 items-table">
 

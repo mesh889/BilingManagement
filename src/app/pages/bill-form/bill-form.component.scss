@@ -49,3 +49,26 @@
     }
   }
 }
+/* Keep Buyer and Supplier collapsed sections equal in height */
+.collapsed-header {
+  min-height: 65px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Keep card headers consistent */
+.card-header {
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+}
+
+/* Consistent collapsed details */
+.collapsed-header .small {
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

@@ -21,6 +21,9 @@ export class BillFormComponent implements OnInit {
 
   billNumber = '';
   billDate = '';
+  // Buyer / Supplier collapse state
+  buyerCollapsed = false;
+  supplierCollapsed = false;
 
   buyer: PartyDetails = { name: '', gstNo: '', pan: '', address: '', phone: '', bankName: '', accountNumber: '', ifscCode: '' };
   supplier: PartyDetails = { name: '', gstNo: '', pan: '', address: '', phone: '', bankName: '', accountNumber: '', ifscCode: '' };
@@ -35,6 +38,13 @@ export class BillFormComponent implements OnInit {
   showSupplierSuggestions = false;
   allBuyers: PartyDetails[] = [];
   allSuppliers: PartyDetails[] = [];
+// Collapse both sections when user starts entering items
+collapsePartyDetails(): void {
+  if (this.buyer.name && this.supplier.name) {
+    this.buyerCollapsed = true;
+    this.supplierCollapsed = true;
+  }
+}
 
   get buyerSuggestions(): PartyDetails[] {
     if (!this.buyer.name || this.buyer.name.length < 1) return [];

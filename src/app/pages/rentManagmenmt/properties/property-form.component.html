@@ -1,0 +1,50 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>{{ isEditMode ? 'Edit Property' : 'Add Property' }}</h1>
+      <p>Maintain property master data.</p>
+    </div>
+    <a routerLink="/tenant-rent/properties">← Back</a>
+  </div>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Loading...</div>
+
+  <section class="panel" *ngIf="!loading">
+    <div class="grid">
+      <div *ngIf="isEditMode">
+        <label>Property Code</label>
+        <input [value]="model.property_code || ''" disabled>
+      </div>
+
+      <div>
+        <label>Property Name *</label>
+        <input [(ngModel)]="model.property_name" maxlength="150">
+      </div>
+
+      <div>
+        <label>Location *</label>
+        <input [(ngModel)]="model.location" maxlength="250">
+      </div>
+
+      <div>
+        <label>Status</label>
+        <select [(ngModel)]="model.status">
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label>Property Details</label>
+        <textarea rows="5" [(ngModel)]="model.property_details"></textarea>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a class="btn light" routerLink="/tenant-rent/properties">Cancel</a>
+      <button class="btn" [disabled]="saving" (click)="submit()">
+        {{ saving ? 'Saving...' : (isEditMode ? 'Update Property' : 'Save Property') }}
+      </button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,78 @@
+<div class="page">
+  <div class="page-header">
+    <div><h1>Dashboard</h1><p>Collection, expense and tenant control.</p></div>
+    <div class="actions">
+      <a class="btn secondary" routerLink="/tenant-rent/transactions/new">+ Transaction</a>
+      <a class="btn secondary" routerLink="/tenant-rent/tenants/new">+ Tenant</a>
+      <a class="btn secondary" routerLink="/tenant-rent/properties/new">+ Property</a>
+      <button class="btn" type="button" (click)="refresh()">Refresh</button>
+    </div>
+  </div>
+
+  <section class="panel graph-panel">
+    <div class="graph-header">
+      <div><h2>Property-wise Collection</h2><p>Monthly rent collection for the selected date range.</p></div>
+      <div class="range-filters">
+        <div class="filter"><label>From Date</label><input type="date" [(ngModel)]="rangeFrom" (change)="onRangeChange()"></div>
+        <div class="filter"><label>To Date</label><input type="date" [(ngModel)]="rangeTo" (change)="onRangeChange()"></div>
+      </div>
+    </div>
+    <div class="graph-loading" *ngIf="graphLoading">Loading collection graph...</div>
+    <div class="chart-wrap" *ngIf="!graphLoading">
+      <svg class="collection-chart" [attr.viewBox]="'0 0 ' + graphWidth + ' ' + graphHeight" preserveAspectRatio="none" role="img" aria-label="Monthly property-wise collection graph">
+        <g class="grid-lines">
+          <ng-container *ngFor="let level of [0,1,2,3,4]">
+            <line [attr.x1]="graphLeft" [attr.x2]="graphWidth-graphRight" [attr.y1]="graphGridY(level)" [attr.y2]="graphGridY(level)"></line>
+            <text [attr.x]="graphLeft-10" [attr.y]="graphGridY(level)+4" text-anchor="end">{{ graphGridLabel(level) }}</text>
+          </ng-container>
+        </g>
+        <g class="x-labels">
+          <ng-container *ngFor="let month of graphMonths; let i=index"><text [attr.x]="graphX(i)" [attr.y]="graphHeight-25" text-anchor="middle">{{ shortMonthLabel(month) }}</text></ng-container>
+        </g>
+        <ng-container *ngFor="let series of graphSeries">
+          <polyline class="series-line" [attr.points]="seriesPoints(series)" [style.stroke]="series.color"></polyline>
+          <ng-container *ngFor="let value of series.values; let i=index">
+            <circle class="series-point" [attr.cx]="graphX(i)" [attr.cy]="graphY(value)" r="4" [style.fill]="series.color">
+              <title>{{ series.propertyName }} · {{ monthLabel(graphMonths[i]) }} · {{ money(value) }}</title>
+            </circle>
+          </ng-container>
+        </ng-container>
+      </svg>
+    </div>
+    <div class="graph-empty" *ngIf="!graphLoading && !graphSeries.length">No collection records found for the selected date range.</div>
+    <div class="legend" *ngIf="graphSeries.length"><div class="legend-item" *ngFor="let series of graphSeries"><span class="legend-dot" [style.background]="series.color"></span><span>{{ series.propertyName }}</span></div></div>
+  </section>
+
+  <div class="toolbar">
+    <button class="tab" [class.active]="viewMode==='monthly'" (click)="viewMode='monthly'; loadMonthly()">Monthly</button>
+    <button class="tab" [class.active]="viewMode==='yearly'" (click)="viewMode='yearly'; loadYearly()">Yearly</button>
+    <div class="filter" *ngIf="viewMode==='monthly'"><label>Month</label><input type="month" [(ngModel)]="selectedMonth" (change)="loadMonthly()"></div>
+    <div class="filter" *ngIf="viewMode==='yearly'"><label>Year</label><input type="number" min="2000" max="2100" [(ngModel)]="selectedYear" (change)="loadYearly()"></div>
+  </div>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="viewMode==='monthly' && monthly as data">
+    <section class="cards">
+      <article class="card collection"><span>Total Collection</span><strong>{{ money(data.summary.total_collection) }}</strong></article>
+      <article class="card expense"><span>Total Expense</span><strong>{{ money(data.summary.total_expense) }}</strong></article>
+      <article class="card net"><span>Net Collection</span><strong>{{ money(data.summary.net_collection) }}</strong></article>
+      <article class="card"><span>Transactions</span><strong>{{ data.summary.transaction_count }}</strong></article>
+    </section>
+
+    <div class="grid two">
+      <section class="panel"><div class="panel-title"><h2>Property-wise</h2><span>{{ data.month }}</span></div><div class="table-wrap"><table><thead><tr><th>Property</th><th>Collection</th><th>Expense</th><th>Net</th></tr></thead><tbody><tr *ngFor="let row of data.property_wise"><td><strong>{{ row.property_name }}</strong><small>{{ row.property_code }}</small></td><td>{{ money(row.collection) }}</td><td>{{ money(row.expense) }}</td><td>{{ money(row.net) }}</td></tr><tr *ngIf="!data.property_wise.length"><td colspan="4" class="empty">No data.</td></tr></tbody></table></div></section>
+      <section class="panel"><div class="panel-title"><h2>Recent Entries</h2><a routerLink="/tenant-rent/transactions">View all</a></div><div class="recent-list"><div class="recent" *ngFor="let row of data.recent_entries"><div><strong>{{ row.transaction_id }}</strong><small>{{ row.property_name }} · {{ row.tenant_name || 'Property expense' }}</small></div><div class="amount" [class.negative]="row.entry_type==='EXPENSE'">{{ row.entry_type==='EXPENSE' ? '-' : '+' }}{{ money(row.amount) }}</div></div><div class="empty" *ngIf="!data.recent_entries.length">No recent entries.</div></div></section>
+    </div>
+
+    <section class="panel" *ngIf="propertyWise as p"><div class="panel-title"><h2>Property Performance</h2></div><div class="property-bars"><div class="bar-row" *ngFor="let row of p.properties"><div class="bar-label"><span>{{ row.property_name }}</span><strong>{{ money(row.net) }}</strong></div><div class="bar-track"><div class="bar-fill" [style.width.%]="row.collection ? (row.net / row.collection) * 100 : 0"></div></div></div></div></section>
+  </ng-container>
+
+  <ng-container *ngIf="viewMode==='yearly' && yearly as data">
+    <section class="cards"><article class="card collection"><span>Year Collection</span><strong>{{ money(data.summary.total_collection) }}</strong></article><article class="card expense"><span>Year Expense</span><strong>{{ money(data.summary.total_expense) }}</strong></article><article class="card net"><span>Year Net</span><strong>{{ money(data.summary.net_collection) }}</strong></article><article class="card"><span>Transactions</span><strong>{{ data.summary.transaction_count }}</strong></article></section>
+    <section class="panel"><div class="panel-title"><h2>Monthly Breakdown</h2><span>{{ data.year }}</span></div><div class="year-chart"><div class="month-row" *ngFor="let row of data.monthly_breakdown"><div class="month-name">{{ row.month }}</div><div class="bars"><div class="series"><span>Collection</span><div class="track"><div class="fill collection-fill" [style.width]="barWidth(row.collection)"></div></div><b>{{ money(row.collection) }}</b></div><div class="series"><span>Expense</span><div class="track"><div class="fill expense-fill" [style.width]="barWidth(row.expense)"></div></div><b>{{ money(row.expense) }}</b></div></div></div></div></section>
+  </ng-container>
+
+  <section class="panel overdue" *ngIf="overdue.length"><div class="panel-title"><h2>Tenant Overdue</h2><a routerLink="/tenant-rent/tenants">View tenants</a></div><div class="table-wrap"><table><thead><tr><th>Tenant</th><th>Property</th><th>Rent</th><th>Collected</th><th>Overdue</th></tr></thead><tbody><tr *ngFor="let row of overdue"><td><strong>{{ row.tenant_name }}</strong><small>{{ row.tenant_phone }}</small></td><td>{{ row.property_name }}</td><td>{{ money(row.rent_amount) }}</td><td>{{ money(row.total_rent_collected) }}</td><td class="danger">{{ money(row.overdue_amount) }}</td></tr></tbody></table></div></section>
+</div>

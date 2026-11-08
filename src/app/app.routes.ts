@@ -7,6 +7,7 @@ import { BackupComponent } from './pages/backup/backup.component';
 import { PurchaseListComponent } from './pages/purchase-list/purchase-list.component';
 import { PurchaseFormComponent } from './pages/purchase-form/purchase-form.component';
 import { ReportComponent } from './pages/report/report.component';
+import { tenantRentRoutes } from './pages/rentManagmenmt/tenant-rent.routes';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'bills', pathMatch: 'full' },
@@ -20,4 +21,11 @@ export const routes: Routes = [
   { path: 'purchases/edit/:id', component: PurchaseFormComponent },
   { path: 'report', component: ReportComponent },
   { path: 'backup', component: BackupComponent },
+
+
+{path:'tenant-rent',children:tenantRentRoutes}
+
+
+ 
+
 ];

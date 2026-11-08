@@ -1,0 +1,80 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>{{ isEditMode ? 'Edit Tenant' : 'Add Tenant' }}</h1>
+      <p>Maintain tenant and agreement details.</p>
+    </div>
+    <a routerLink="/tenant-rent/tenants">← Back</a>
+  </div>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Loading...</div>
+
+  <section class="panel" *ngIf="!loading">
+    <div class="grid">
+      <div>
+        <label>Tenant Name *</label>
+        <input [(ngModel)]="model.tenant_name" maxlength="120">
+      </div>
+
+      <div>
+        <label>Phone</label>
+        <input [(ngModel)]="model.tenant_phone" maxlength="30">
+      </div>
+
+      <div>
+        <label>Email</label>
+        <input type="email" [(ngModel)]="model.tenant_email" maxlength="150">
+      </div>
+
+      <div>
+        <label>Property *</label>
+        <select [(ngModel)]="model.property_id">
+          <option [ngValue]="0">Select property</option>
+          <option *ngFor="let p of properties" [ngValue]="p.id">
+            {{ p.property_name }} — {{ p.location }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label>Deposit Amount</label>
+        <input type="number" min="0" step="0.01" [(ngModel)]="model.deposit_amount">
+      </div>
+
+      <div>
+        <label>Rent Amount *</label>
+        <input type="number" min="0.01" step="0.01" [(ngModel)]="model.rent_amount">
+      </div>
+
+      <div>
+        <label>Agreement Start *</label>
+        <input type="date" [(ngModel)]="model.agreement_start_date">
+      </div>
+
+      <div>
+        <label>Agreement End</label>
+        <input type="date" [(ngModel)]="model.agreement_end_date">
+      </div>
+
+      <div>
+        <label>Status</label>
+        <select [(ngModel)]="model.status">
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label>Notes</label>
+        <textarea rows="4" [(ngModel)]="model.notes"></textarea>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a class="btn light" routerLink="/tenant-rent/tenants">Cancel</a>
+      <button class="btn" [disabled]="saving" (click)="submit()">
+        {{ saving ? 'Saving...' : (isEditMode ? 'Update Tenant' : 'Save Tenant') }}
+      </button>
+    </div>
+  </section>
+</div>

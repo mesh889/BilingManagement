@@ -1,0 +1,39 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Properties</h1>
+      <p>Property master data and status.</p>
+    </div>
+    <a class="btn" routerLink="/tenant-rent/properties/new">+ Add Property</a>
+  </div>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Loading properties...</div>
+
+  <section class="grid" *ngIf="!loading">
+    <article class="property-card" *ngFor="let p of properties">
+      <div class="top">
+        <div>
+          <h2>{{ p.property_name }}</h2>
+          <span>{{ p.property_code }}</span>
+        </div>
+        <span class="status" [class.inactive]="p.status !== 'ACTIVE'">{{ p.status }}</span>
+      </div>
+
+      <p class="location">{{ p.location }}</p>
+      <p class="details">{{ p.property_details || 'No additional details.' }}</p>
+
+      <div class="meta">
+        <span>Active tenants</span>
+        <strong>{{ p.active_tenant_count || 0 }}</strong>
+      </div>
+
+      <div class="actions">
+        <a [routerLink]="['/tenant-rent/properties', p.id, 'edit']">Edit</a>
+        <button *ngIf="p.status === 'ACTIVE'" (click)="deactivate(p)">Deactivate</button>
+      </div>
+    </article>
+
+    <div class="empty" *ngIf="!properties.length">No properties found.</div>
+  </section>
+</div>

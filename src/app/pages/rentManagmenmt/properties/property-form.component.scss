@@ -1,0 +1,20 @@
+.page { padding: 24px; max-width: 900px; margin: auto; background: #f7f8fb; min-height: 100%; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+h1, p { margin: 0; } p { color: #6b7280; margin-top: 4px; }
+.header a { color: #2563eb; text-decoration: none; }
+.panel { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+.full { grid-column: 1 / -1; }
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+input, select, textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #d1d5db; border-radius: 7px; font: inherit; }
+textarea { resize: vertical; }
+.footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.btn { padding: 10px 16px; background: #111827; color: white; border: 0; border-radius: 8px; text-decoration: none; cursor: pointer; }
+.btn.light { background: white; color: #111827; border: 1px solid #d1d5db; }
+.alert { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+.loading { color: #6b7280; padding: 20px; }
+@media (max-width: 700px) {
+  .page { padding: 14px; }
+  .grid { grid-template-columns: 1fr; }
+  .full { grid-column: auto; }
+}

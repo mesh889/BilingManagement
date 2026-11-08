@@ -1,0 +1,54 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Tenants</h1>
+      <p>Tenant and agreement master data.</p>
+    </div>
+    <a class="btn" routerLink="/tenant-rent/tenants/new">+ Add Tenant</a>
+  </div>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Loading tenants...</div>
+
+  <section class="panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Property</th>
+            <th>Agreement</th>
+            <th>Rent</th>
+            <th>Deposit</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of tenants">
+            <td>
+              <strong>{{ row.tenant_name }}</strong>
+              <small>{{ row.tenant_phone || 'No phone' }}</small>
+              <small>{{ row.tenant_email || '' }}</small>
+            </td>
+            <td>
+              <strong>{{ row.property_name }}</strong>
+              <small>{{ row.location }}</small>
+            </td>
+            <td>{{ row.agreement_start_date }} → {{ row.agreement_end_date || 'Open' }}</td>
+            <td>{{ money(row.rent_amount) }}</td>
+            <td>{{ money(row.deposit_amount) }}</td>
+            <td><span class="status">{{ row.status }}</span></td>
+            <td class="actions">
+              <a [routerLink]="['/tenant-rent/tenants', row.id, 'edit']">Edit</a>
+              <button *ngIf="row.status === 'ACTIVE'" (click)="deactivate(row)">Deactivate</button>
+            </td>
+          </tr>
+          <tr *ngIf="!tenants.length">
+            <td colspan="7" class="empty">No tenants found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

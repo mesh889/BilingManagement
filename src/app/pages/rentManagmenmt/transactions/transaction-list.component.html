@@ -1,0 +1,94 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Transactions</h1>
+      <p>Collection and property expense history.</p>
+    </div>
+    <a class="btn" routerLink="/tenant-rent/transactions/new">+ New Transaction</a>
+  </div>
+
+  <section class="filters">
+    <div>
+      <label>Type</label>
+      <select [(ngModel)]="entryType">
+        <option *ngFor="let type of entryTypes" [value]="type.value">{{ type.label }}</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Property</label>
+      <select [(ngModel)]="propertyId">
+        <option value="">All Properties</option>
+        <option *ngFor="let p of properties" [value]="p.id">{{ p.property_name }}</option>
+      </select>
+    </div>
+
+    <div>
+      <label>From</label>
+      <input type="date" [(ngModel)]="fromDate">
+    </div>
+
+    <div>
+      <label>To</label>
+      <input type="date" [(ngModel)]="toDate">
+    </div>
+
+    <div>
+      <label>Status</label>
+      <select [(ngModel)]="status">
+        <option value="POSTED">Posted</option>
+        <option value="VOID">Void</option>
+        <option value="">All</option>
+      </select>
+    </div>
+
+    <button class="btn" (click)="loadEntries()">Search</button>
+    <button class="btn light" (click)="clearFilters()">Clear</button>
+  </section>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Loading...</div>
+
+  <section class="panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Transaction ID</th>
+            <th>Payment Date</th>
+            <th>Rent Period</th>
+            <th>Type</th>
+            <th>Property</th>
+            <th>Tenant</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of entries">
+            <td><strong>{{ row.transaction_id }}</strong></td>
+            <td>{{ row.entry_date }}</td>
+            <td>{{ row.entry_type === 'COLLECTION' && row.period_from && row.period_to ? (row.period_from + ' → ' + row.period_to) : '—' }}</td>
+            <td><span class="badge" [class.expense]="row.entry_type === 'EXPENSE'">{{ row.entry_type }}</span></td>
+            <td>{{ row.property_name }}</td>
+            <td>{{ row.tenant_name || '—' }}</td>
+            <td>{{ row.category }}</td>
+            <td>{{ money(row.amount) }}</td>
+            <td>{{ row.payment_mode || '—' }}</td>
+            <td>{{ row.status }}</td>
+            <td class="actions">
+              <a [routerLink]="['/tenant-rent/transactions', row.id, 'edit']">Edit</a>
+              <button *ngIf="row.status === 'POSTED'" (click)="voidEntry(row)">Void</button>
+            </td>
+          </tr>
+          <tr *ngIf="!entries.length">
+            <td colspan="11" class="empty">No transactions found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

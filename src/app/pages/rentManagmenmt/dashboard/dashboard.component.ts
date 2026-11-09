@@ -90,8 +90,21 @@ export class DashboardComponent implements OnInit {
       if (!propertyMap.has(entry.property_id)) propertyMap.set(entry.property_id, { propertyName: entry.property_name || `Property ${entry.property_id}`, values: this.graphMonths.map(() => 0) });
       propertyMap.get(entry.property_id)!.values[monthIndex] += Number(entry.amount || 0);
     }
-    this.graphSeries = Array.from(propertyMap.entries()).sort((a,b) => a[1].propertyName.localeCompare(b[1].propertyName)).map(([propertyId, value], index) => ({ propertyId, propertyName: value.propertyName, color: this.propertyColors[index % this.propertyColors.length], values: value.values.map(v => Number(v.toFixed(2))) }));
-    this.graphMax = Math.max(...this.graphSeries.flatMap(s => s.values), 1);
+    this.graphSeries = Array.from(propertyMap.entries())
+      .sort((a,b) => a[1].propertyName.localeCompare(b[1].propertyName))
+      .map(([propertyId, value], index) => ({
+        propertyId,
+        propertyName: value.propertyName,
+        color: this.propertyColors[index % this.propertyColors.length],
+        values: value.values.map(v => Number(v.toFixed(2)))
+      }));
+
+    // The Y-axis is based on the TOTAL collection for each month,
+    // because all property amounts are stacked into one monthly bar.
+    this.graphMax = Math.max(
+      ...this.graphMonths.map((_, monthIndex) => this.monthTotal(monthIndex)),
+      1
+    );
   }
 
   private buildMonths(from: string, to: string): string[] {
@@ -104,14 +117,92 @@ export class DashboardComponent implements OnInit {
   }
   monthLabel(month: string): string { const [year,m] = month.split('-').map(Number); return new Intl.DateTimeFormat('en-IN',{month:'short',year:'numeric'}).format(new Date(year,m-1,1)); }
   shortMonthLabel(month: string): string { const [year,m] = month.split('-').map(Number); return new Intl.DateTimeFormat('en-IN',{month:'short'}).format(new Date(year,m-1,1)); }
-  graphX(index: number): number { const plotWidth=this.graphWidth-this.graphLeft-this.graphRight; return this.graphMonths.length<=1 ? this.graphLeft+plotWidth/2 : this.graphLeft+(index/(this.graphMonths.length-1))*plotWidth; }
-  graphY(value: number): number { const plotHeight=this.graphHeight-this.graphTop-this.graphBottom; return this.graphTop+(1-value/this.graphMax)*plotHeight; }
-  seriesPoints(series: GraphSeries): string { return series.values.map((value,index)=>`${this.graphX(index)},${this.graphY(value)}`).join(' '); }
-  graphGridY(level: number): number { return this.graphY((this.graphMax/4)*level); }
-  graphGridLabel(level: number): string { return this.compactMoney((this.graphMax/4)*level); }
+  graphY(value: number): number {
+    const plotHeight = this.graphHeight - this.graphTop - this.graphBottom;
+    return this.graphTop + (1 - value / this.graphMax) * plotHeight;
+  }
+
+  monthTotal(monthIndex: number): number {
+    return this.graphSeries.reduce(
+      (total, series) => total + Number(series.values[monthIndex] || 0),
+      0
+    );
+  }
+
+  stackBefore(monthIndex: number, propertyIndex: number): number {
+    return this.graphSeries
+      .slice(0, propertyIndex)
+      .reduce(
+        (total, series) => total + Number(series.values[monthIndex] || 0),
+        0
+      );
+  }
+
+  barGroupWidth(): number {
+    const plotWidth = this.graphWidth - this.graphLeft - this.graphRight;
+    return plotWidth / Math.max(this.graphMonths.length, 1);
+  }
+
+  stackedBarWidth(): number {
+    return Math.min(70, this.barGroupWidth() * 0.55);
+  }
+
+  stackedBarX(monthIndex: number): number {
+    return (
+      this.graphLeft +
+      monthIndex * this.barGroupWidth() +
+      (this.barGroupWidth() - this.stackedBarWidth()) / 2
+    );
+  }
+
+  monthGroupX(monthIndex: number): number {
+    return (
+      this.graphLeft +
+      monthIndex * this.barGroupWidth() +
+      this.barGroupWidth() / 2
+    );
+  }
+
+  stackedBarY(monthIndex: number, propertyIndex: number): number {
+    const value = Number(this.graphSeries[propertyIndex]?.values[monthIndex] || 0);
+    const before = this.stackBefore(monthIndex, propertyIndex);
+    return this.graphY(before + value);
+  }
+
+  stackedBarHeight(monthIndex: number, propertyIndex: number): number {
+    const value = Number(this.graphSeries[propertyIndex]?.values[monthIndex] || 0);
+    const plotHeight = this.graphHeight - this.graphTop - this.graphBottom;
+    return (value / this.graphMax) * plotHeight;
+  }
+
+  stackedBarLabelY(monthIndex: number, propertyIndex: number): number {
+    const value = Number(this.graphSeries[propertyIndex]?.values[monthIndex] || 0);
+    const before = this.stackBefore(monthIndex, propertyIndex);
+    return this.graphY(before + value / 2) + 4;
+  }
+
+  showStackAmount(monthIndex: number, propertyIndex: number): boolean {
+    const value = Number(this.graphSeries[propertyIndex]?.values[monthIndex] || 0);
+    const plotHeight = this.graphHeight - this.graphTop - this.graphBottom;
+    return (value / this.graphMax) * plotHeight >= 24;
+  }
+
+  graphGridY(level: number): number {
+    return this.graphY((this.graphMax / 4) * level);
+  }
+
+  graphGridLabel(level: number): string {
+    return this.compactMoney((this.graphMax / 4) * level);
+  }
   compactMoney(value: number): string { const a=Number(value||0); if(a>=10000000)return `₹${(a/10000000).toFixed(1)}Cr`; if(a>=100000)return `₹${(a/100000).toFixed(1)}L`; if(a>=1000)return `₹${(a/1000).toFixed(0)}K`; return `₹${Math.round(a)}`; }
   money(value: number | null | undefined): string { return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(value||0); }
   maxMonthlyValue(): number { const rows=this.yearly?.monthly_breakdown||[]; return Math.max(...rows.map(x=>Math.max(x.collection,x.expense)),1); }
   barWidth(value: number): string { return `${Math.max(2,Math.round((value/this.maxMonthlyValue())*100))}%`; }
   private handleError(error: any): void { this.loading=false; this.errorMessage=error?.error?.message||error?.message||'Unable to load dashboard data.'; }
+  graphX(index: number): number {
+  const plotWidth = this.graphWidth - this.graphLeft - this.graphRight;
+  return this.graphMonths.length <= 1
+    ? this.graphLeft + plotWidth / 2
+    : this.graphLeft + (index / (this.graphMonths.length - 1)) * plotWidth;
+}
 }

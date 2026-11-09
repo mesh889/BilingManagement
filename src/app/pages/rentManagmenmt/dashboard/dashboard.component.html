@@ -19,7 +19,7 @@
     </div>
     <div class="graph-loading" *ngIf="graphLoading">Loading collection graph...</div>
     <div class="chart-wrap" *ngIf="!graphLoading">
-      <svg class="collection-chart" [attr.viewBox]="'0 0 ' + graphWidth + ' ' + graphHeight" preserveAspectRatio="none" role="img" aria-label="Monthly property-wise collection graph">
+      <svg class="collection-chart" [attr.viewBox]="'0 0 ' + graphWidth + ' ' + graphHeight" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Monthly property-wise collection graph">
         <g class="grid-lines">
           <ng-container *ngFor="let level of [0,1,2,3,4]">
             <line [attr.x1]="graphLeft" [attr.x2]="graphWidth-graphRight" [attr.y1]="graphGridY(level)" [attr.y2]="graphGridY(level)"></line>
@@ -29,13 +29,39 @@
         <g class="x-labels">
           <ng-container *ngFor="let month of graphMonths; let i=index"><text [attr.x]="graphX(i)" [attr.y]="graphHeight-25" text-anchor="middle">{{ shortMonthLabel(month) }}</text></ng-container>
         </g>
-        <ng-container *ngFor="let series of graphSeries">
-          <polyline class="series-line" [attr.points]="seriesPoints(series)" [style.stroke]="series.color"></polyline>
-          <ng-container *ngFor="let value of series.values; let i=index">
-            <circle class="series-point" [attr.cx]="graphX(i)" [attr.cy]="graphY(value)" r="4" [style.fill]="series.color">
-              <title>{{ series.propertyName }} · {{ monthLabel(graphMonths[i]) }} · {{ money(value) }}</title>
-            </circle>
+        <ng-container *ngFor="let month of graphMonths; let monthIndex=index">
+          <ng-container *ngFor="let series of graphSeries; let propertyIndex=index">
+            <rect
+              class="collection-bar"
+              [attr.x]="stackedBarX(monthIndex)"
+              [attr.y]="stackedBarY(monthIndex, propertyIndex)"
+              [attr.width]="stackedBarWidth()"
+              [attr.height]="stackedBarHeight(monthIndex, propertyIndex)"
+              [style.fill]="series.color"
+              rx="2"
+            >
+              <title>{{ series.propertyName }} · {{ monthLabel(month) }} · {{ money(series.values[monthIndex]) }}</title>
+            </rect>
+
+            <text
+              *ngIf="showStackAmount(monthIndex, propertyIndex)"
+              class="bar-amount"
+              [attr.x]="stackedBarX(monthIndex) + stackedBarWidth() / 2"
+              [attr.y]="stackedBarLabelY(monthIndex, propertyIndex)"
+              text-anchor="middle"
+            >
+              {{ compactMoney(series.values[monthIndex]) }}
+            </text>
           </ng-container>
+
+          <text
+            class="bar-total"
+            [attr.x]="monthGroupX(monthIndex)"
+            [attr.y]="graphY(monthTotal(monthIndex)) - 8"
+            text-anchor="middle"
+          >
+            {{ compactMoney(monthTotal(monthIndex)) }}
+          </text>
         </ng-container>
       </svg>
     </div>

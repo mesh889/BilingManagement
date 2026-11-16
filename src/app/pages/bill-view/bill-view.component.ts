@@ -402,5 +402,10 @@ export class BillViewComponent implements OnInit {
     return Math.round(this.grandTotal);
 
   }
+  get isQuotation(): boolean {
+  return String(this.bill?.billNumber || '')
+    .toLowerCase()
+    .includes('quotation');
+}
 
 } 

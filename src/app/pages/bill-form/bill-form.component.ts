@@ -38,13 +38,13 @@ export class BillFormComponent implements OnInit {
   showSupplierSuggestions = false;
   allBuyers: PartyDetails[] = [];
   allSuppliers: PartyDetails[] = [];
-// Collapse both sections when user starts entering items
-collapsePartyDetails(): void {
-  if (this.buyer.name && this.supplier.name) {
-    this.buyerCollapsed = true;
-    this.supplierCollapsed = true;
+  // Collapse both sections when user starts entering items
+  collapsePartyDetails(): void {
+    if (this.buyer.name && this.supplier.name) {
+      this.buyerCollapsed = true;
+      this.supplierCollapsed = true;
+    }
   }
-}
 
   get buyerSuggestions(): PartyDetails[] {
     if (!this.buyer.name || this.buyer.name.length < 1) return [];
@@ -177,11 +177,12 @@ collapsePartyDetails(): void {
     item.amount = +(afterDisc + cgst + sgst).toFixed(2);
   }
   getItemTaxableAmount(item: BillItem): number {
-    const qty = item.quantity || 0;
-    const rate = item.rate || 0;
-    const discount = item.discount || 0;
+    const unit = Number(item.unit) || 1;
+    const qty = Number(item.quantity) || 0;
+    const rate = Number(item.rate) || 0;
+    const discount = Number(item.discount) || 0;
 
-    const base = qty * rate;
+    const base = unit * qty * rate;
 
     const taxableAmount =
       base - (base * discount) / 100;
@@ -189,7 +190,31 @@ collapsePartyDetails(): void {
     return +taxableAmount.toFixed(2);
   }
   get filledItems(): BillItem[] {
-    return this.items.filter(i => i.description && i.quantity && i.rate);
+    return this.items.filter(i =>
+      i.description?.trim() &&
+      i.quantity != null &&
+      i.quantity > 0 &&
+      i.rate != null &&
+      i.rate > 0
+    );
+  }
+
+  get noteItems(): BillItem[] {
+    return this.items.filter(i =>
+      i.description?.trim() &&
+      !(i.quantity != null && i.quantity > 0 && i.rate != null && i.rate > 0)
+    );
+  }
+
+  get itemsToSave(): BillItem[] {
+    return this.items.filter(i =>
+      i.description?.trim() ||
+      i.hsnSac?.trim() ||
+      i.quantity != null ||
+      i.rate != null ||
+      i.cgstPercent != null ||
+      i.sgstPercent != null
+    );
   }
 
   get totalTaxableAmount(): number {
@@ -264,22 +289,42 @@ collapsePartyDetails(): void {
     ).toFixed(2);
   }
 
+
   saveBill() {
     if (!this.buyer.name || !this.supplier.name) {
       alert('Please fill in buyer and supplier names.');
       return;
     }
-    if (this.filledItems.length === 0) {
-      alert('Please add at least one item.');
+    if (!this.validateTaxRates()) {
       return;
     }
+    // if (this.filledItems.length === 0) {
+    //   alert('Please add at least one item.');
+    //   return;
+    // }
 
     const billData = {
       billNumber: this.billNumber,
       billDate: this.billDate,
       buyer: { ...this.buyer },
       supplier: { ...this.supplier, bankName: this.bankDetails.bankName, accountNumber: this.bankDetails.accountNumber, ifscCode: this.bankDetails.ifscCode },
-      items: this.filledItems.map(i => ({ ...i })),
+      // items: this.filledItems.map(i => ({ ...i })),
+      items: this.itemsToSave.map(i => ({
+        ...i,
+
+        // Description-only rows are notes
+        isNote: !!(
+          i.description?.trim() &&
+          !(i.quantity && i.quantity > 0 && i.rate && i.rate > 0)
+        ),
+
+        // Keep financial values empty/zero for notes
+        quantity: i.quantity || null,
+        rate: i.rate || null,
+        cgstPercent: i.cgstPercent || null,
+        sgstPercent: i.sgstPercent || null,
+        amount: this.isBillableItem(i) ? i.amount : 0
+      })),
       bankDetails: { ...this.bankDetails },
       totalAmount: this.totalTaxableAmount,
       totalGst: this.totalGst,
@@ -296,5 +341,50 @@ collapsePartyDetails(): void {
     } else {
       this.billService.create(billData as any).subscribe(done);
     }
+  }
+  isBillableItem(item: BillItem): boolean {
+    return !!(
+      item.description?.trim() &&
+      item.quantity != null &&
+      item.quantity > 0 &&
+      item.rate != null &&
+      item.rate > 0
+    );
+  }
+  get isQuotation(): boolean {
+    return this.billNumber?.toLowerCase().includes('quotation') ?? false;
+  }
+  validateTaxRates(): boolean {
+    if (this.isQuotation) {
+      return true;
+    }
+    for (const item of this.items) {
+      const hasItemValues =
+        item.unit != null &&
+        item.unit > 0 &&
+        item.quantity != null &&
+        item.quantity > 0 &&
+        item.rate != null &&
+        item.rate > 0;
+
+      if (!hasItemValues) {
+        continue;
+      }
+
+      const cgstMissing =
+        item.cgstPercent == null || item.cgstPercent === undefined;
+
+      const sgstMissing =
+        item.sgstPercent == null || item.sgstPercent === undefined;
+
+      if (cgstMissing || sgstMissing) {
+        alert(
+          `Please enter CGST % and SGST % for item row ${item.srNo}.`
+        );
+        return false;
+      }
+    }
+
+    return true;
   }
 }

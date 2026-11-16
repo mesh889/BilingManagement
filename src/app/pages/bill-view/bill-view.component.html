@@ -62,7 +62,9 @@
   </div>
 
   <!-- Tax Invoice Title -->
-  <div class="invoice-title">Tax Invoice</div>
+ <div class="invoice-title">
+  {{ isQuotation ? 'Quotation' : 'Tax Invoice' }}
+</div>
 
   <!-- Supplier Details -->
   <div class="supplier-row">

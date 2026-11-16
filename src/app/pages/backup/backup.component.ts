@@ -1,166 +1,263 @@
-import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { BillService } from '../../services/bill.service';
+
+interface BackupColumn {
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: unknown;
+  pk: number;
+}
+
+interface BackupTable {
+  name: string;
+  sql: string | null;
+  columns: BackupColumn[];
+  foreignKeys: any[];
+  primaryKey: string[];
+  rows: Record<string, any>[];
+}
+
+interface BackupFile {
+  format: string;
+  version: string;
+  exportedAt: string;
+  reason?: string;
+  database?: string;
+  totalTables: number;
+  totalRecords: number;
+  tables: BackupTable[];
+}
 
 @Component({
   selector: 'app-backup',
-  imports: [CommonModule, FormsModule, RouterLink],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './backup.component.html',
-  styleUrl: './backup.component.scss'
+  styleUrls: ['./backup.component.scss']
 })
-export class BackupComponent implements OnInit {
-  private billService = inject(BillService);
+export class BackupComponent {
+  readonly apiBase = '/api';
 
-  // Backup
-  backupStatus = '';
-  backupData: any = null;
-  isBackingUp = false;
+  backup: BackupFile | null = null;
+  serverBackups: any[] = [];
+  expanded: Record<string, boolean> = {};
+  selected: Record<string, Set<number>> = {};
 
-  // Saved files
-  savedFiles: any[] = [];
+  loading = false;
+  restoring = false;
+  message = '';
+  error = '';
 
-  // Restore
-  restoreStatus = '';
-  restoreFile: File | null = null;
-  restorePreview: any = null;
-  clearExisting = false;
-  isRestoring = false;
-  selectedBills: Set<number> = new Set();
+  async downloadBackup(): Promise<void> {
+    this.clearMessages();
+    this.loading = true;
+    try {
+      const response = await fetch(`${this.apiBase}/backup`);
+      if (!response.ok) throw new Error(await this.readError(response));
 
-  ngOnInit() {
-    this.loadSavedFiles();
-  }
+      const blob = await response.blob();
+      const disposition = response.headers.get('content-disposition') || '';
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = match?.[1] || 'database-backup.dbbackup.json';
 
-  loadSavedFiles() {
-    this.billService.getBackupFiles().subscribe(files => this.savedFiles = files);
-  }
-
-  // === BACKUP ===
-  createBackup() {
-    this.isBackingUp = true;
-    this.backupStatus = '';
-    this.billService.backup().subscribe({
-      next: (data) => {
-        this.backupData = data;
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.savedAs || `bills-backup-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        this.backupStatus = `Backup created! ${data.totalBills} bills + ${data.totalPurchases} purchases exported. Saved as: ${data.savedAs}`;
-        this.isBackingUp = false;
-        this.loadSavedFiles();
-      },
-      error: (err) => {
-        this.backupStatus = 'Backup failed: ' + (err.error?.error || err.message);
-        this.isBackingUp = false;
-      }
-    });
-  }
-
-  // === SAVED FILES ===
-  downloadFile(filename: string) {
-    this.billService.downloadBackupFile(filename).subscribe(data => {
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-    });
+
+      this.message = 'Complete database backup downloaded successfully.';
+      await this.loadServerBackups();
+    } catch (e: any) {
+      this.error = e?.message || 'Backup failed.';
+    } finally {
+      this.loading = false;
+    }
   }
 
-  deleteFile(filename: string) {
-    if (!confirm(`Delete backup "${filename}"?`)) return;
-    this.billService.deleteBackupFile(filename).subscribe(() => this.loadSavedFiles());
+  async loadServerBackups(): Promise<void> {
+    try {
+      const response = await fetch(`${this.apiBase}/backup/files`);
+      if (!response.ok) return;
+      this.serverBackups = await response.json();
+    } catch (_) {
+      // The backup page can still work using an uploaded file.
+    }
   }
 
-  restoreFromSaved(filename: string) {
-    this.billService.downloadBackupFile(filename).subscribe(data => {
-      this.restorePreview = data;
-      this.restoreFile = null;
-      this.selectedBills.clear();
-      if (data?.bills) {
-        data.bills.forEach((_: any, i: number) => this.selectedBills.add(i));
-      }
-    });
-  }
-
-  formatSize(bytes: number): string {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-  }
-
-  // === RESTORE ===
-  onFileSelected(event: Event) {
+  async onFileSelected(event: Event): Promise<void> {
+    this.clearMessages();
     const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
-    this.restoreFile = input.files[0];
-    this.restorePreview = null;
-    this.restoreStatus = '';
-    this.selectedBills.clear();
+    const file = input.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        this.restorePreview = JSON.parse(reader.result as string);
-        if (this.restorePreview?.bills) {
-          this.restorePreview.bills.forEach((_: any, i: number) => this.selectedBills.add(i));
-        }
-      } catch {
-        this.restoreStatus = 'Invalid JSON file.';
-        this.restoreFile = null;
-      }
-    };
-    reader.readAsText(this.restoreFile);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as BackupFile;
+      this.validateBackup(parsed);
+      this.backup = parsed;
+      this.initialiseSelection();
+      this.message = `${file.name} loaded. All tables and records are selected by default.`;
+    } catch (e: any) {
+      this.backup = null;
+      this.error = e?.message || 'Invalid backup file.';
+    }
+
+    input.value = '';
   }
 
-  toggleBill(index: number) {
-    if (this.selectedBills.has(index)) this.selectedBills.delete(index);
-    else this.selectedBills.add(index);
+  validateBackup(data: BackupFile): void {
+    if (!data || data.format !== 'complete-sqlite-database-backup') {
+      throw new Error('This is not a supported complete database backup file.');
+    }
+    if (!Array.isArray(data.tables)) {
+      throw new Error('Backup file does not contain table data.');
+    }
   }
 
-  get isAllSelected(): boolean {
-    return this.restorePreview?.bills?.length > 0 && this.selectedBills.size === this.restorePreview.bills.length;
+  initialiseSelection(): void {
+    this.selected = {};
+    this.expanded = {};
+    for (const table of this.backup?.tables || []) {
+      this.selected[table.name] = new Set(table.rows.map((_, index) => index));
+      this.expanded[table.name] = false;
+    }
   }
 
-  toggleSelectAll() {
-    if (this.isAllSelected) this.selectedBills.clear();
-    else this.restorePreview?.bills?.forEach((_: any, i: number) => this.selectedBills.add(i));
+  isTableSelected(table: BackupTable): boolean {
+    return !!this.selected[table.name] && this.selected[table.name].size === table.rows.length && table.rows.length > 0;
   }
 
-  restoreBackup() {
-    const hasBills = this.restorePreview?.bills && this.selectedBills.size > 0;
-    const hasPurchases = this.restorePreview?.purchases?.length > 0;
-    if (!hasBills && !hasPurchases) {
-      this.restoreStatus = 'Nothing to restore.';
+  isTablePartiallySelected(table: BackupTable): boolean {
+    const count = this.selected[table.name]?.size || 0;
+    return count > 0 && count < table.rows.length;
+  }
+
+  isRowSelected(table: BackupTable, index: number): boolean {
+    return this.selected[table.name]?.has(index) || false;
+  }
+
+  toggleTable(table: BackupTable): void {
+    if (!this.selected[table.name]) this.selected[table.name] = new Set<number>();
+    if (this.isTableSelected(table)) {
+      this.selected[table.name].clear();
+    } else {
+      this.selected[table.name] = new Set(table.rows.map((_, i) => i));
+    }
+  }
+
+  toggleRow(table: BackupTable, index: number): void {
+    const set = this.selected[table.name] || new Set<number>();
+    if (set.has(index)) set.delete(index); else set.add(index);
+    this.selected[table.name] = set;
+  }
+
+  allSelected(): boolean {
+    if (!this.backup?.tables.length) return false;
+    return this.backup.tables.every(t => this.isTableSelected(t));
+  }
+
+  toggleAll(): void {
+    if (!this.backup) return;
+    const select = !this.allSelected();
+    for (const table of this.backup.tables) {
+      this.selected[table.name] = select
+        ? new Set(table.rows.map((_, i) => i))
+        : new Set<number>();
+    }
+  }
+
+  toggleExpanded(table: BackupTable): void {
+    this.expanded[table.name] = !this.expanded[table.name];
+  }
+
+  selectedCount(table: BackupTable): number {
+    return this.selected[table.name]?.size || 0;
+  }
+
+  totalSelected(): number {
+    return Object.values(this.selected).reduce((total, set) => total + set.size, 0);
+  }
+
+  selectedRows(table: BackupTable): Record<string, any>[] {
+    const indexes = this.selected[table.name] || new Set<number>();
+    return [...indexes].map(i => table.rows[i]).filter(Boolean);
+  }
+
+  async restoreSelected(): Promise<void> {
+    this.clearMessages();
+    if (!this.backup) {
+      this.error = 'Please select a backup file first.';
       return;
     }
-    if (this.clearExisting && !confirm('This will DELETE all existing bills and purchases. Continue?')) return;
-    const billsToRestore = hasBills ? this.restorePreview.bills.filter((_: any, i: number) => this.selectedBills.has(i)) : [];
-    const purchasesToRestore = hasPurchases ? this.restorePreview.purchases : [];
-    this.isRestoring = true;
-    this.restoreStatus = '';
-    this.billService.restore({ bills: billsToRestore, purchases: purchasesToRestore, clearExisting: this.clearExisting }).subscribe({
-      next: (res: any) => {
-        this.restoreStatus = `Restore successful! ${res.importedBills} bills + ${res.importedPurchases} purchases imported. Total: ${res.totalBillsNow} bills, ${res.totalPurchasesNow} purchases.`;
-        this.isRestoring = false;
-        this.restorePreview = null;
-        this.restoreFile = null;
-        this.selectedBills.clear();
-      },
-      error: (err: any) => {
-        this.restoreStatus = 'Restore failed: ' + (err.error?.error || err.message);
-        this.isRestoring = false;
+    if (!this.totalSelected()) {
+      this.error = 'Please select at least one record.';
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Restore ${this.totalSelected()} selected record(s)? A safety backup will be created before restore.`
+    );
+    if (!confirmed) return;
+
+    this.restoring = true;
+    try {
+      const selected: Record<string, Record<string, any>[]> = {};
+      for (const table of this.backup.tables) {
+        const rows = this.selectedRows(table);
+        if (rows.length) selected[table.name] = rows;
       }
-    });
+
+      const response = await fetch(`${this.apiBase}/restore/selected`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup: this.backup, selected })
+      });
+
+      if (!response.ok) throw new Error(await this.readError(response));
+      const result = await response.json();
+      this.message = `${result.message} Restored ${result.totalSelected} record(s).`;
+    } catch (e: any) {
+      this.error = e?.message || 'Restore failed.';
+    } finally {
+      this.restoring = false;
+    }
+  }
+
+  columns(table: BackupTable): BackupColumn[] {
+    return table.columns || [];
+  }
+
+  displayValue(value: any): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  primaryLabel(table: BackupTable, row: Record<string, any>, index: number): string {
+    const keys = table.primaryKey?.length ? table.primaryKey : ['id'];
+    const value = keys.map(k => `${k}: ${this.displayValue(row[k])}`).join(' | ');
+    return value || `Record ${index + 1}`;
+  }
+
+  private clearMessages(): void {
+    this.message = '';
+    this.error = '';
+  }
+
+  private async readError(response: Response): Promise<string> {
+    try {
+      const data = await response.json();
+      return data.error || data.message || 'Server request failed.';
+    } catch (_) {
+      return `Server request failed (${response.status}).`;
+    }
+  }
+
+  constructor() {
+    this.loadServerBackups();
   }
 }

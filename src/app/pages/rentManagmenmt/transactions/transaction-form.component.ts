@@ -264,8 +264,15 @@ export class TransactionFormComponent implements OnInit {
       next: response => {
         const entry: Entry = response.data;
 
-        this.existingTransactionId =
-          entry.transaction_id;
+        this.existingTransactionId = entry.transaction_id;
+
+        // Normalize IDs because HTML select values and API values may
+        // arrive as different types (for example, 3 and "3").
+        const propertyId = Number(entry.property_id);
+        const tenantId =
+          entry.tenant_id !== null && entry.tenant_id !== undefined
+            ? Number(entry.tenant_id)
+            : null;
 
         this.model = {
           entry_date: entry.entry_date,
@@ -287,10 +294,10 @@ export class TransactionFormComponent implements OnInit {
             ),
 
           entry_type: entry.entry_type,
-          property_id: entry.property_id,
-          tenant_id: entry.tenant_id ?? null,
+          property_id: propertyId,
+          tenant_id: tenantId,
           category: entry.category,
-          amount: entry.amount,
+          amount: Number(entry.amount),
           payment_mode: entry.payment_mode ?? 'UPI',
           reference_no: entry.reference_no ?? '',
           notes: entry.notes ?? '',
@@ -298,8 +305,7 @@ export class TransactionFormComponent implements OnInit {
         };
 
         /*
-         * Normalize old/saved collection periods.
-         *
+         * Normalize saved collection periods.
          * From = first day of its month
          * To   = last day of its ending month
          */
@@ -315,12 +321,15 @@ export class TransactionFormComponent implements OnInit {
           }
         }
 
-        this.loadPropertyTenants(
-          entry.property_id,
-          entry.tenant_id ?? null
-        );
-
-        this.loading = false;
+        // Load the tenant options first, then restore the saved tenant.
+        // This prevents the edit form from displaying a blank tenant
+        // while the property-specific tenant list is still loading.
+        if (propertyId) {
+          this.loadPropertyTenants(propertyId, tenantId);
+        } else {
+          this.propertyTenants = [];
+          this.loading = false;
+        }
       },
 
       error: error => {
@@ -371,24 +380,44 @@ export class TransactionFormComponent implements OnInit {
     propertyId: number,
     tenantIdToKeep: number | null = null
   ): void {
-    this.api.getTenantsByProperty(propertyId).subscribe({
+    this.api.getTenantsByProperty(Number(propertyId)).subscribe({
       next: response => {
-        this.propertyTenants =
-          response.data || [];
+        this.propertyTenants = (response.data || []).map(tenant => ({
+          ...tenant,
+          id: Number(tenant.id)
+        }));
 
-        if (
-          tenantIdToKeep &&
-          this.propertyTenants.some(
-            x => x.id === tenantIdToKeep
-          )
-        ) {
-          this.model.tenant_id =
-            tenantIdToKeep;
+        if (tenantIdToKeep !== null && tenantIdToKeep !== undefined) {
+          const savedTenantId = Number(tenantIdToKeep);
+
+          const tenantExists = this.propertyTenants.some(
+            tenant => Number(tenant.id) === savedTenantId
+          );
+
+          this.model.tenant_id = tenantExists ? savedTenantId : null;
+
+          if (!tenantExists) {
+            console.warn(
+              'Saved transaction tenant was not found in the selected property tenant list.',
+              {
+                propertyId,
+                tenantId: savedTenantId,
+                availableTenants: this.propertyTenants
+              }
+            );
+          }
         }
+
+        this.loading = false;
       },
 
-      error: () => {
+      error: error => {
         this.propertyTenants = [];
+        this.model.tenant_id = null;
+        this.errorMessage =
+          error?.error?.message ||
+          'Unable to load tenants for selected property.';
+        this.loading = false;
       }
     });
   }
